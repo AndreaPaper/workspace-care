@@ -1,6 +1,6 @@
 // Electron main process: runs PocketBase locally, serves the Angular build from it,
 // and keeps the app in the system tray so it is always available.
-const { app, BrowserWindow, Tray, Menu, dialog, nativeImage, ipcMain } = require('electron');
+const { app, BrowserWindow, Tray, Menu, dialog, nativeImage, ipcMain, Notification } = require('electron');
 const { spawn } = require('child_process');
 const crypto = require('crypto');
 const path = require('path');
@@ -87,12 +87,14 @@ function loadCredentials() {
   }
 }
 
-function requestJson(method, urlPath, body) {
+function requestJson(method, urlPath, body, token) {
   return new Promise((resolve, reject) => {
     const data = body ? JSON.stringify(body) : null;
+    const headers = data ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) } : {};
+    if (token) headers.Authorization = token;
     const req = http.request(
       `${BASE_URL}${urlPath}`,
-      { method, headers: data ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) } : {} },
+      { method, headers },
       (res) => {
         let raw = '';
         res.on('data', (c) => (raw += c));
@@ -112,6 +114,55 @@ async function ensureAccount() {
 }
 
 ipcMain.handle('credentials', () => loadCredentials());
+
+// --- Due-date reminders -------------------------------------------------------------------
+// A Windows notification at startup and once a day (from 09:00) when checks are due or overdue.
+const REMINDER_HOUR = 9;
+let lastReminderDay = '';
+
+function localDay(d = new Date()) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+async function countDueChecks() {
+  const creds = loadCredentials();
+  const auth = await requestJson('POST', '/api/collections/users/auth-with-password', {
+    identity: creds.email,
+    password: creds.password,
+  });
+  const filter = encodeURIComponent(`prossima_scadenza <= "${localDay()} 23:59:59.999Z"`);
+  const res = await requestJson('GET', `/api/collections/controlli/records?perPage=200&filter=${filter}`, null, auth.token);
+  const today = localDay();
+  const overdue = res.items.filter((c) => String(c.prossima_scadenza).slice(0, 10) < today).length;
+  return { total: res.totalItems, overdue };
+}
+
+async function checkReminders({ force = false } = {}) {
+  const now = new Date();
+  const day = localDay(now);
+  if (!force && (lastReminderDay === day || now.getHours() < REMINDER_HOUR)) return;
+  try {
+    const { total, overdue } = await countDueChecks();
+    lastReminderDay = day;
+    console.log(`Reminder check: ${total} due, ${overdue} overdue`);
+    if (!total || !Notification.isSupported()) return;
+    const n = new Notification({
+      title: 'Workspace Care',
+      body: overdue
+        ? `${total} controlli da fare oggi o in ritardo (${overdue} scaduti).`
+        : total === 1
+          ? '1 controllo da fare oggi.'
+          : `${total} controlli da fare oggi.`,
+    });
+    n.on('click', () => {
+      showWindow();
+      win.loadURL(`${BASE_URL}/#/controlli`);
+    });
+    n.show();
+  } catch (err) {
+    console.error('Reminder check failed:', err.message);
+  }
+}
 
 function createWindow() {
   win = new BrowserWindow({
@@ -162,6 +213,7 @@ function createTray() {
   tray.setContextMenu(
     Menu.buildFromTemplate([
       { label: 'Apri Workspace Care', click: showWindow },
+      { label: 'Controlla scadenze ora', click: () => checkReminders({ force: true }) },
       { label: 'Esporta backup…', click: exportBackup },
       { type: 'separator' },
       { label: 'Esci', click: () => app.quit() },
@@ -176,6 +228,7 @@ if (!app.requestSingleInstanceLock()) {
   app.on('second-instance', showWindow);
 
   app.whenReady().then(async () => {
+    app.setAppUserModelId('it.workspacecare.app'); // needed for Windows notifications
     if (!isDev) app.setLoginItemSettings({ openAtLogin: true });
     startPocketBase();
     try {
@@ -188,6 +241,9 @@ if (!app.requestSingleInstanceLock()) {
     }
     createTray();
     createWindow();
+    // Startup reminder (any hour), then a check every 30 minutes for the daily 09:00 one.
+    checkReminders({ force: true });
+    setInterval(checkReminders, 30 * 60 * 1000);
   });
 
   app.on('before-quit', (e) => {

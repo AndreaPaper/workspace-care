@@ -12,6 +12,8 @@ export const routes: Routes = [
       { path: 'dashboard', loadComponent: () => import('./pages/dashboard/dashboard').then((m) => m.Dashboard) },
       { path: 'idee', loadComponent: () => import('./pages/ideas/ideas').then((m) => m.Ideas) },
       { path: 'idee/:id', loadComponent: () => import('./pages/idea-detail/idea-detail').then((m) => m.IdeaDetail) },
+      { path: 'richieste', loadComponent: () => import('./pages/requests/requests').then((m) => m.Requests) },
+      { path: 'controlli', loadComponent: () => import('./pages/controls/controls').then((m) => m.Controls) },
       { path: 'aree', loadComponent: () => import('./pages/areas/areas').then((m) => m.Areas) },
     ],
   },

@@ -65,3 +65,64 @@ export interface IdeaLink extends RecordModel {
 export const labelOf = (list: readonly { value: string; label: string }[], value: string): string =>
   list.find((i) => i.value === value)?.label ?? value;
 
+
+export const CHECK_FREQUENCIES = [
+  { value: 'settimanale', label: 'Settimanale' },
+  { value: 'mensile', label: 'Mensile' },
+  { value: 'trimestrale', label: 'Trimestrale' },
+];
+
+export const CHECK_OUTCOMES = [
+  { value: 'ok', label: 'Tutto a posto' },
+  { value: 'da_sistemare', label: 'Da sistemare' },
+];
+
+export const WEEKDAYS = [
+  { value: 1, label: 'Lunedì' },
+  { value: 2, label: 'Martedì' },
+  { value: 3, label: 'Mercoledì' },
+  { value: 4, label: 'Giovedì' },
+  { value: 5, label: 'Venerdì' },
+  { value: 6, label: 'Sabato' },
+  { value: 7, label: 'Domenica' },
+];
+
+export const REQUEST_STATUSES = [
+  { value: 'ricevuta', label: 'Ricevuta' },
+  { value: 'in_valutazione', label: 'In valutazione' },
+  { value: 'in_corso', label: 'In corso' },
+  { value: 'fatta', label: 'Fatta' },
+  { value: 'non_fattibile', label: 'Non fattibile' },
+];
+
+export type CheckFrequency = 'settimanale' | 'mensile' | 'trimestrale';
+export type CheckOutcome = 'ok' | 'da_sistemare';
+export type RequestStatus = 'ricevuta' | 'in_valutazione' | 'in_corso' | 'fatta' | 'non_fattibile';
+
+export interface Check extends RecordModel {
+  nome: string;
+  area: string;
+  frequenza: CheckFrequency;
+  giorno: number;
+  prossima_scadenza: string;
+  expand?: { area?: Area };
+}
+
+export interface CheckRun extends RecordModel {
+  controllo: string;
+  data: string;
+  esito: CheckOutcome | '';
+  note: string;
+}
+
+export interface WorkRequest extends RecordModel {
+  titolo: string;
+  descrizione: string;
+  richiedente: string;
+  area: string;
+  data: string;
+  stato: RequestStatus;
+  idea: string;
+  note: string;
+  expand?: { area?: Area; idea?: Idea };
+}

@@ -61,9 +61,9 @@ export class Shell {
   readonly nav: NavItem[] = [
     { label: 'Dashboard', icon: 'home', path: '/dashboard', enabled: true },
     { label: 'Idee', icon: 'lightbulb', path: '/idee', enabled: true },
-    { label: 'Richieste', icon: 'inbox', path: '/richieste', enabled: false },
+    { label: 'Richieste', icon: 'inbox', path: '/richieste', enabled: true },
     { label: 'Acquisti', icon: 'shopping_cart', path: '/acquisti', enabled: false },
-    { label: 'Controlli', icon: 'checklist', path: '/controlli', enabled: false },
+    { label: 'Controlli', icon: 'checklist', path: '/controlli', enabled: true },
     { label: 'Inventario', icon: 'inventory_2', path: '/inventario', enabled: false },
     { label: 'Cassettiere', icon: 'table_rows', path: '/cassettiere', enabled: false },
     { label: 'Regole', icon: 'menu_book', path: '/regole', enabled: false },
