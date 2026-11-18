@@ -41,6 +41,12 @@ export class ControlsService {
       .then((r) => r.items);
   }
 
+  /** All executions on or after `sinceDay` (YYYY-MM-DD), newest first, with the check expanded. */
+  runsSince(sinceDay?: string): Promise<(CheckRun & { expand?: { controllo?: Check } })[]> {
+    const filter = sinceDay ? this.pb.client.filter('data >= {:d}', { d: sinceDay + ' 00:00:00.000Z' }) : '';
+    return this.runs.getFullList({ sort: '-data,-created', expand: 'controllo', filter });
+  }
+
   bucket(check: Check): CheckBucket {
     const due = toDay(check.prossima_scadenza);
     const today = todayDay();

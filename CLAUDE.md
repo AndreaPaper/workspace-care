@@ -1,0 +1,53 @@
+# Workspace Care – app desktop personale per la cura dell'ufficio
+
+## Contesto
+App personale (un solo utente) per gestire il ruolo di "Workspace Care" in un ufficio di consulenti programmatori:
+ordine e riorganizzazione degli spazi, idee di miglioramento, acquisti, manutenzione, richieste dei colleghi,
+controlli periodici e regole condivise. Il lavoro si svolge a margine dell'attività di sviluppo: l'app deve
+essere veloce da usare e richiedere poca manutenzione.
+
+## Stack
+- Frontend: Angular (ultima versione stabile), componenti standalone, signals, **Angular Material** (non PrimeNG:
+  dalla v22 richiede una licenza PrimeUI). Icone con il pacchetto `material-icons` (nessun font da rete).
+- Backend: PocketBase (SQLite, API REST). Logica lato server con hook JavaScript in `backend/pb_hooks/`.
+- Distribuzione: **app Windows locale con Electron** (`desktop/`). Gratis, sempre disponibile, nessun hosting.
+  Electron avvia `pocketbase.exe` su 127.0.0.1:8090, lo usa anche per servire la build Angular e resta nella tray.
+- Un solo utente, **nessuna schermata di login**: al primo avvio Electron crea un account interno con password casuale
+  (`%APPDATA%\workspace-care\credentials.json`) e lo espone ad Angular tramite `desktop/preload.js`; l'API resta protetta.
+  La pagina di login esiste solo come ripiego fuori da Electron (es. `ng serve` nel browser).
+- Interfaccia in italiano, responsive.
+
+## Struttura del repository
+- `frontend/` – app Angular (`src/app/{core,models,services,pages}`)
+- `backend/` – `pocketbase.exe` (non versionato), `pb_migrations/`, `pb_hooks/`
+- `desktop/` – processo principale Electron, tray, notifiche, export PDF, installer (electron-builder)
+- Le collezioni PocketBase si definiscono con **migrazioni JS versionate**, non a mano dal pannello.
+
+## Modello dati (collezioni PocketBase)
+- **aree**, **idee**, **link_idea** (anche `immagine_url` per il fallback manuale), **richieste**, **acquisti**
+  (anche `data_acquisto`, valorizzata dall'hook), **controlli**, **esecuzioni_controllo**, **inventario**,
+  **cassettiere**, **regole**. Campi e valori ammessi: vedi `backend/pb_migrations/`.
+- Importi di `acquisti`: stime e prezzo effettivo sono totali di riga (quantità già compresa).
+
+## Logica lato server (`backend/pb_hooks/`)
+- `anteprima.pb.js` + `lib/preview.js`: all'inserimento di un link scarica og:image/og:title/og:site_name e prezzo;
+  mai bloccante, `stato_anteprima = fallita` se non riesce. Amazon e simili si gestiscono col fallback manuale.
+- `controlli.pb.js` + `lib/scadenze.js`: calcolo di `prossima_scadenza`; `POST /api/controlli/:id/fatto` registra
+  l'esecuzione e sposta la scadenza contando da oggi (nessun arretrato).
+- `acquisti.pb.js`: `data_acquisto` automatica; `POST /api/idee/:id/converti` (idempotente) crea l'acquisto da un'idea.
+- `setup.pb.js`: `GET/POST /api/setup` per creare il primo e unico utente.
+
+## Schermate
+Dashboard, Idee (griglia/kanban, dettaglio con anteprime affiancate), Richieste, Acquisti e budget, Controlli,
+Inventario, Cassettiere, Regole, Riepilogo per la direzione (esporta PDF), Aree.
+Il PDF si genera dalla pagina `#/riepilogo` con `webContents.printToPDF` di Electron (stile `@media print`).
+
+## Convenzioni
+- Codice e nomi in inglese, testi dell'interfaccia in italiano (i nomi delle collezioni PocketBase restano italiani).
+- Un servizio Angular per collezione, tipi TypeScript allineati alle collezioni (`models/models.ts`).
+- Router con `withHashLocation()`: la build è servita come file statici da PocketBase.
+- Prima di implementare una nuova fase, proponi il piano e attendi conferma.
+
+## Note operative
+- Windows PowerShell 5.1: i body JSON con accenti vanno inviati come byte UTF-8 (`charset=utf-8`).
+- `npm run dist` in `desktop/` genera l'installer; la build Angular (`ng build` in `frontend/`) va fatta prima.

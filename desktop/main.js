@@ -1,6 +1,6 @@
 // Electron main process: runs PocketBase locally, serves the Angular build from it,
 // and keeps the app in the system tray so it is always available.
-const { app, BrowserWindow, Tray, Menu, dialog, nativeImage, ipcMain, Notification } = require('electron');
+const { app, BrowserWindow, Tray, Menu, dialog, nativeImage, ipcMain, Notification, shell } = require('electron');
 const { spawn } = require('child_process');
 const crypto = require('crypto');
 const path = require('path');
@@ -114,6 +114,22 @@ async function ensureAccount() {
 }
 
 ipcMain.handle('credentials', () => loadCredentials());
+
+// Writes the current page (the Riepilogo report, styled by its @media print rules) to a PDF file.
+ipcMain.handle('export-pdf', async (event, suggestedName) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  const name = String(suggestedName || 'riepilogo.pdf').replace(/[\/:*?"<>|]/g, '-');
+  const { canceled, filePath } = await dialog.showSaveDialog(win, {
+    title: 'Salva il riepilogo',
+    defaultPath: path.join(app.getPath('documents'), name),
+    filters: [{ name: 'PDF', extensions: ['pdf'] }],
+  });
+  if (canceled || !filePath) return null;
+  const pdf = await event.sender.printToPDF({ printBackground: true, pageSize: 'A4', preferCSSPageSize: true });
+  fs.writeFileSync(filePath, pdf);
+  shell.showItemInFolder(filePath);
+  return filePath;
+});
 
 // --- Due-date reminders -------------------------------------------------------------------
 // A Windows notification at startup and once a day (from 09:00) when checks are due or overdue.

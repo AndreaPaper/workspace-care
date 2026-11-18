@@ -48,6 +48,7 @@ export interface Idea extends RecordModel {
   costo_max: number;
   foto: string[];
   note: string;
+  updated: string;
   expand?: { area?: Area };
 }
 
@@ -124,6 +125,7 @@ export interface WorkRequest extends RecordModel {
   stato: RequestStatus;
   idea: string;
   note: string;
+  updated: string;
   expand?: { area?: Area; idea?: Idea };
 }
 
@@ -150,4 +152,48 @@ export interface Purchase extends RecordModel {
   stato: PurchaseStatus;
   data_acquisto: string;
   expand?: { area?: Area; idea?: Idea };
+}
+
+export const DRAWER_TYPES = [
+  { value: 'personale', label: 'Personale' },
+  { value: 'condivisa', label: 'Condivisa' },
+];
+
+export const RULE_TOPICS = [
+  { value: 'cassettiere', label: 'Cassettiere' },
+  { value: 'cucina', label: 'Cucina' },
+  { value: 'frigorifero', label: 'Frigorifero' },
+  { value: 'altro', label: 'Altro' },
+];
+
+export const RULE_STATUSES = [
+  { value: 'da_definire', label: 'Da definire' },
+  { value: 'bozza', label: 'Bozza' },
+  { value: 'attiva', label: 'Attiva' },
+];
+
+export type DrawerType = 'personale' | 'condivisa';
+export type RuleTopic = 'cassettiere' | 'cucina' | 'frigorifero' | 'altro';
+export type RuleStatus = 'da_definire' | 'bozza' | 'attiva';
+
+export interface InventoryItem extends RecordModel {
+  nome: string;
+  area: string;
+  posizione: string;
+  note: string;
+  expand?: { area?: Area };
+}
+
+export interface Drawer extends RecordModel {
+  numero: number;
+  area: string;
+  tipo: DrawerType;
+  assegnata_a: string;
+  expand?: { area?: Area };
+}
+
+export interface Rule extends RecordModel {
+  tema: RuleTopic;
+  testo: string;
+  stato: RuleStatus;
 }

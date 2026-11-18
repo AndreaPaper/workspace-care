@@ -3,4 +3,5 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('workspaceCare', {
   getCredentials: () => ipcRenderer.invoke('credentials'),
+  exportPdf: (suggestedName) => ipcRenderer.invoke('export-pdf', suggestedName),
 });

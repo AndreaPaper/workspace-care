@@ -4,7 +4,11 @@ import PocketBase, { RecordModel } from 'pocketbase';
 declare global {
   interface Window {
     /** Provided by desktop/preload.js when running inside Electron. */
-    workspaceCare?: { getCredentials(): Promise<{ email: string; password: string }> };
+    workspaceCare?: {
+      getCredentials(): Promise<{ email: string; password: string }>;
+      /** Opens a save dialog and writes the current page as a PDF. Resolves to the saved path, or null if cancelled. */
+      exportPdf?(suggestedName: string): Promise<string | null>;
+    };
   }
 }
 

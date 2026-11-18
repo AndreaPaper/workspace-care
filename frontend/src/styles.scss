@@ -34,3 +34,11 @@ a { color: var(--mat-sys-primary); }
 .chip.warn { background: #fef3c7; color: #92400e; }
 .chip.bad { background: #fee2e2; color: #991b1b; }
 mat-form-field { min-width: 160px; }
+
+@media print {
+  .no-print, .sidebar, .topbar { display: none !important; }
+  main { padding: 0 !important; }
+  body { background: #fff; }
+  .report { border: 0 !important; padding: 0 !important; max-width: none !important; }
+  @page { size: A4; margin: 14mm; }
+}

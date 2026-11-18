@@ -17,7 +17,10 @@ import { RequestsService } from '../../services/requests.service';
   template: `
     <div class="head">
       <h1>Dashboard</h1>
-      <a mat-flat-button routerLink="/idee" [queryParams]="{ nuova: 1 }"><mat-icon>add</mat-icon> Nuova idea</a>
+      <span class="actions">
+        <a mat-stroked-button routerLink="/riepilogo"><mat-icon>description</mat-icon> Riepilogo</a>
+        <a mat-flat-button routerLink="/idee" [queryParams]="{ nuova: 1 }"><mat-icon>add</mat-icon> Nuova idea</a>
+      </span>
     </div>
     <div class="grid">
       <mat-card>
@@ -88,6 +91,7 @@ import { RequestsService } from '../../services/requests.service';
   styles: `
     .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
     h1 { margin: 0; }
+    .actions { display: flex; gap: .5rem; }
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem; }
     mat-card-content { padding-top: .75rem; }
     .row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .5rem 0; border-bottom: 1px solid var(--mat-sys-outline-variant); color: inherit; text-decoration: none; }

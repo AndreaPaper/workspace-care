@@ -64,9 +64,10 @@ export class Shell {
     { label: 'Richieste', icon: 'inbox', path: '/richieste', enabled: true },
     { label: 'Acquisti', icon: 'shopping_cart', path: '/acquisti', enabled: true },
     { label: 'Controlli', icon: 'checklist', path: '/controlli', enabled: true },
-    { label: 'Inventario', icon: 'inventory_2', path: '/inventario', enabled: false },
-    { label: 'Cassettiere', icon: 'table_rows', path: '/cassettiere', enabled: false },
-    { label: 'Regole', icon: 'menu_book', path: '/regole', enabled: false },
+    { label: 'Inventario', icon: 'inventory_2', path: '/inventario', enabled: true },
+    { label: 'Cassettiere', icon: 'table_rows', path: '/cassettiere', enabled: true },
+    { label: 'Regole', icon: 'menu_book', path: '/regole', enabled: true },
+    { label: 'Riepilogo', icon: 'description', path: '/riepilogo', enabled: true },
     { label: 'Aree', icon: 'map', path: '/aree', enabled: true },
   ];
 }
