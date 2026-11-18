@@ -1,7 +1,8 @@
 // Electron main process: runs PocketBase locally, serves the Angular build from it,
 // and keeps the app in the system tray so it is always available.
-const { app, BrowserWindow, Tray, Menu, dialog, nativeImage } = require('electron');
+const { app, BrowserWindow, Tray, Menu, dialog, nativeImage, ipcMain } = require('electron');
 const { spawn } = require('child_process');
+const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
 const http = require('http');
@@ -70,8 +71,57 @@ function waitForServer(timeoutMs = 20000) {
   });
 }
 
+// Single-user app: no login screen. An internal account with a random password is created on the
+// first run and kept in the user data folder; the Angular app signs in with it automatically.
+// The API stays protected, so other programs or web pages cannot read or change the data.
+const credentialsFile = path.join(app.getPath('userData'), 'credentials.json');
+
+function loadCredentials() {
+  try {
+    return JSON.parse(fs.readFileSync(credentialsFile, 'utf8'));
+  } catch {
+    const creds = { email: 'owner@workspace-care.local', password: crypto.randomBytes(24).toString('base64url') };
+    fs.mkdirSync(path.dirname(credentialsFile), { recursive: true });
+    fs.writeFileSync(credentialsFile, JSON.stringify(creds));
+    return creds;
+  }
+}
+
+function requestJson(method, urlPath, body) {
+  return new Promise((resolve, reject) => {
+    const data = body ? JSON.stringify(body) : null;
+    const req = http.request(
+      `${BASE_URL}${urlPath}`,
+      { method, headers: data ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) } : {} },
+      (res) => {
+        let raw = '';
+        res.on('data', (c) => (raw += c));
+        res.on('end', () => (res.statusCode < 300 ? resolve(raw ? JSON.parse(raw) : {}) : reject(new Error(`HTTP ${res.statusCode}`))));
+      },
+    );
+    req.on('error', reject);
+    if (data) req.write(data);
+    req.end();
+  });
+}
+
+async function ensureAccount() {
+  const creds = loadCredentials();
+  const { needed } = await requestJson('GET', '/api/setup');
+  if (needed) await requestJson('POST', '/api/setup', creds);
+}
+
+ipcMain.handle('credentials', () => loadCredentials());
+
 function createWindow() {
-  win = new BrowserWindow({ width: 1280, height: 800, minWidth: 360, title: 'Workspace Care', autoHideMenuBar: true });
+  win = new BrowserWindow({
+    width: 1280,
+    height: 800,
+    minWidth: 360,
+    title: 'Workspace Care',
+    autoHideMenuBar: true,
+    webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false },
+  });
   win.loadURL(BASE_URL);
   win.on('close', (e) => {
     if (!quitting) {
@@ -130,6 +180,7 @@ if (!app.requestSingleInstanceLock()) {
     startPocketBase();
     try {
       await waitForServer();
+      await ensureAccount();
     } catch (err) {
       dialog.showErrorBox('Workspace Care', String(err.message));
       app.quit();

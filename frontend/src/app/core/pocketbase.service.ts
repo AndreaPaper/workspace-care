@@ -1,6 +1,13 @@
 import { Injectable, isDevMode, signal } from '@angular/core';
 import PocketBase, { RecordModel } from 'pocketbase';
 
+declare global {
+  interface Window {
+    /** Provided by desktop/preload.js when running inside Electron. */
+    workspaceCare?: { getCredentials(): Promise<{ email: string; password: string }> };
+  }
+}
+
 // In production the Angular build is served by PocketBase itself (same origin).
 const PB_URL = isDevMode() ? 'http://127.0.0.1:8090' : window.location.origin;
 
@@ -16,6 +23,23 @@ export class PocketBaseService {
 
   async login(email: string, password: string): Promise<void> {
     await this.client.collection('users').authWithPassword(email, password);
+  }
+
+  /**
+   * Inside the desktop app the internal account is signed in silently, so there is no login screen.
+   * Returns false when not running in Electron (e.g. ng serve in a browser): the login page is the fallback.
+   */
+  async autoLogin(): Promise<boolean> {
+    if (this.client.authStore.isValid) return true;
+    const bridge = window.workspaceCare;
+    if (!bridge) return false;
+    try {
+      const { email, password } = await bridge.getCredentials();
+      await this.login(email, password);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   async isSetupNeeded(): Promise<boolean> {

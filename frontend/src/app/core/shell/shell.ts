@@ -1,8 +1,7 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { PocketBaseService } from '../pocketbase.service';
+import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
 interface NavItem {
   label: string;
@@ -32,7 +31,6 @@ interface NavItem {
             </span>
           }
         }
-        <a class="logout" (click)="logout()"><mat-icon>logout</mat-icon> Esci</a>
       </nav>
       <main><router-outlet /></main>
     </div>
@@ -58,8 +56,6 @@ interface NavItem {
   `,
 })
 export class Shell {
-  private readonly pb = inject(PocketBaseService);
-  private readonly router = inject(Router);
   readonly menuOpen = signal(false);
 
   readonly nav: NavItem[] = [
@@ -73,9 +69,4 @@ export class Shell {
     { label: 'Regole', icon: 'menu_book', path: '/regole', enabled: false },
     { label: 'Aree', icon: 'map', path: '/aree', enabled: true },
   ];
-
-  logout(): void {
-    this.pb.logout();
-    this.router.navigateByUrl('/login');
-  }
 }
