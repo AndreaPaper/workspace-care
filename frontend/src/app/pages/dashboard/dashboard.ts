@@ -89,7 +89,7 @@ import { RequestsService } from '../../services/requests.service';
     </div>
   `,
   styles: `
-    .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+    .head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: .5rem; margin-bottom: 1rem; }
     h1 { margin: 0; }
     .actions { display: flex; gap: .5rem; }
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem; }

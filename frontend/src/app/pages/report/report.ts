@@ -180,6 +180,7 @@ const PERIODS = [
     th, td { text-align: left; padding: .3rem .4rem; border-bottom: 1px solid #e2e8f0; }
     .num { text-align: right; white-space: nowrap; }
     .totals { margin-top: .5rem; }
+    @media (max-width: 600px) { .report { padding: 1rem; } }
     .chip { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   `,
 })

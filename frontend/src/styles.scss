@@ -35,6 +35,12 @@ a { color: var(--mat-sys-primary); }
 .chip.bad { background: #fee2e2; color: #991b1b; }
 mat-form-field { min-width: 160px; }
 
+/* Tighter table cells on phones so tables fit without sideways scrolling. */
+@media (max-width: 600px) {
+  .mat-mdc-table .mat-mdc-header-cell,
+  .mat-mdc-table .mat-mdc-cell { padding: 0 6px; }
+}
+
 @media print {
   .no-print, .sidebar, .topbar { display: none !important; }
   main { padding: 0 !important; }

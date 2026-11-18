@@ -105,7 +105,7 @@ import { PurchaseDialog } from './purchase-dialog';
   styles: `
     .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
     .head h1 { margin: 0; }
-    .totals { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: .75rem; margin-bottom: 1rem; }
+    .totals { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: .75rem; margin-bottom: 1rem; }
     .totals mat-card { padding: .75rem 1rem; display: flex; flex-direction: column; gap: .25rem; }
     .label { color: var(--mat-sys-on-surface-variant); font-size: .85rem; }
     .totals strong { font-size: 1.25rem; }
