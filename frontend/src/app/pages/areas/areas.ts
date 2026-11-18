@@ -90,6 +90,8 @@ export class Areas implements OnInit {
   startEdit(area: Area): void {
     this.editName = area.nome;
     this.editingId.set(area.id);
+    // The input only exists after change detection; focus and select it for quick renaming.
+    setTimeout(() => document.querySelector<HTMLInputElement>('input.edit')?.select());
   }
 
   async saveEdit(area: Area): Promise<void> {
