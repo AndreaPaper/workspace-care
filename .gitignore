@@ -1,0 +1,7 @@
+﻿node_modules/
+dist/
+.angular/
+backend/pb_data/
+backend/pocketbase.exe
+desktop/out/
+

@@ -1,0 +1,47 @@
+{
+  "name": "workspace-care",
+  "version": "0.1.0",
+  "description": "Workspace Care",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis"
+  },
+  "build": {
+    "appId": "it.workspacecare.app",
+    "productName": "Workspace Care",
+    "directories": {
+      "output": "out"
+    },
+    "files": [
+      "main.js",
+      "icon.png"
+    ],
+    "extraResources": [
+      {
+        "from": "../backend/pocketbase.exe",
+        "to": "backend/pocketbase.exe"
+      },
+      {
+        "from": "../backend/pb_migrations",
+        "to": "backend/pb_migrations"
+      },
+      {
+        "from": "../backend/pb_hooks",
+        "to": "backend/pb_hooks"
+      },
+      {
+        "from": "../frontend/dist/frontend/browser",
+        "to": "frontend"
+      }
+    ],
+    "win": {
+      "icon": "icon.png"
+    }
+  },
+  "devDependencies": {
+    "electron": "^45.3.4",
+    "electron-builder": "^26.18.0"
+  }
+}
