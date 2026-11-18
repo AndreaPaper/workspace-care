@@ -126,3 +126,28 @@ export interface WorkRequest extends RecordModel {
   note: string;
   expand?: { area?: Area; idea?: Idea };
 }
+
+export const PURCHASE_STATUSES = [
+  { value: 'da_proporre', label: 'Da proporre' },
+  { value: 'approvato', label: 'Approvato' },
+  { value: 'ordinato', label: 'Ordinato' },
+  { value: 'arrivato', label: 'Arrivato' },
+  { value: 'montato', label: 'Montato' },
+];
+
+export type PurchaseStatus = 'da_proporre' | 'approvato' | 'ordinato' | 'arrivato' | 'montato';
+
+export interface Purchase extends RecordModel {
+  articolo: string;
+  area: string;
+  quantita: number;
+  idea: string;
+  fornitore: string;
+  link: string;
+  stima_min: number;
+  stima_max: number;
+  prezzo_effettivo: number;
+  stato: PurchaseStatus;
+  data_acquisto: string;
+  expand?: { area?: Area; idea?: Idea };
+}

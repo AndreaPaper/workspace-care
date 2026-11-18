@@ -1,3 +1,4 @@
+import { CurrencyPipe } from '@angular/common';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -7,11 +8,12 @@ import { Check, IDEA_PRIORITIES, Idea, WorkRequest, labelOf } from '../../models
 import { ControlsService } from '../../services/controls.service';
 import { formatDay, toDay } from '../../services/dates';
 import { IdeasService } from '../../services/ideas.service';
+import { PurchaseTotals, PurchasesService } from '../../services/purchases.service';
 import { RequestsService } from '../../services/requests.service';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [RouterLink, MatButtonModule, MatCardModule, MatIconModule],
+  imports: [CurrencyPipe, RouterLink, MatButtonModule, MatCardModule, MatIconModule],
   template: `
     <div class="head">
       <h1>Dashboard</h1>
@@ -69,7 +71,17 @@ import { RequestsService } from '../../services/requests.service';
 
       <mat-card>
         <mat-card-header><mat-card-title>Budget stimato vs speso</mat-card-title></mat-card-header>
-        <mat-card-content><p class="muted">Disponibile nella fase 3.</p></mat-card-content>
+        <mat-card-content>
+          @if (budget(); as b) {
+            <div class="budget">
+              <strong>{{ b.spent | currency: 'EUR' : 'symbol' : '1.0-0' }}</strong>
+              <span class="meta">spesi su {{ b.spent + b.remaining | currency: 'EUR' : 'symbol' : '1.0-0' }} previsti</span>
+            </div>
+            <div class="bar"><div [style.width.%]="progress(b)"></div></div>
+            <p class="meta">Ancora da spendere {{ b.remaining | currency: 'EUR' : 'symbol' : '1.0-0' }} · {{ b.toOrder }} da ordinare</p>
+          }
+          <a routerLink="/acquisti">Tutti gli acquisti</a>
+        </mat-card-content>
       </mat-card>
     </div>
   `,
@@ -82,6 +94,10 @@ import { RequestsService } from '../../services/requests.service';
     .grow { flex: 1; display: flex; flex-direction: column; }
     .meta { display: flex; gap: .5rem; align-items: center; color: var(--mat-sys-on-surface-variant); font-size: .9rem; }
     .grow .meta { display: block; }
+    .budget { display: flex; align-items: baseline; gap: .5rem; }
+    .budget strong { font-size: 1.4rem; }
+    .bar { height: 8px; border-radius: 4px; background: var(--mat-sys-surface-container-high); overflow: hidden; margin: .5rem 0; }
+    .bar div { height: 100%; background: var(--mat-sys-primary); }
     .late { color: var(--mat-sys-error); }
   `,
 })
@@ -89,17 +105,22 @@ export class Dashboard implements OnInit {
   private readonly ideas = inject(IdeasService);
   private readonly controls = inject(ControlsService);
   private readonly requests = inject(RequestsService);
+  private readonly purchases = inject(PurchasesService);
+
+  readonly budget = signal<PurchaseTotals | null>(null);
 
   readonly toEvaluate = signal<Idea[]>([]);
   readonly dueChecks = signal<Check[]>([]);
   readonly openRequests = signal<WorkRequest[]>([]);
 
   async ngOnInit(): Promise<void> {
-    const [ideas, checks, requests] = await Promise.all([
+    const [ideas, checks, requests, purchases] = await Promise.all([
       this.ideas.list('stato = "da_valutare"'),
       this.controls.list(),
       this.requests.list('stato = "ricevuta" || stato = "in_valutazione" || stato = "in_corso"'),
+      this.purchases.list(),
     ]);
+    this.budget.set(this.purchases.totals(purchases));
     this.toEvaluate.set(ideas);
     this.dueChecks.set(checks.filter((c) => this.controls.bucket(c) !== 'dopo'));
     this.openRequests.set(requests);
@@ -108,6 +129,11 @@ export class Dashboard implements OnInit {
   async done(check: Check): Promise<void> {
     await this.controls.markDone(check.id);
     this.dueChecks.set((await this.controls.list()).filter((c) => this.controls.bucket(c) !== 'dopo'));
+  }
+
+  progress(b: PurchaseTotals): number {
+    const total = b.spent + b.remaining;
+    return total ? Math.min(100, Math.round((b.spent / total) * 100)) : 0;
   }
 
   isLate(check: Check): boolean {

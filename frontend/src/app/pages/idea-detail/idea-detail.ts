@@ -5,12 +5,15 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatDialog } from '@angular/material/dialog';
 import { Router, RouterLink } from '@angular/router';
 import { PocketBaseService } from '../../core/pocketbase.service';
-import { Area, IDEA_CATEGORIES, IDEA_PRIORITIES, IDEA_STATUSES, Idea, IdeaLink } from '../../models/models';
+import { Area, IDEA_CATEGORIES, IDEA_PRIORITIES, IDEA_STATUSES, Idea, IdeaLink, PURCHASE_STATUSES, Purchase, labelOf } from '../../models/models';
 import { AreasService } from '../../services/areas.service';
 import { IdeaLinksService } from '../../services/idea-links.service';
 import { IdeasService } from '../../services/ideas.service';
+import { PurchasesService } from '../../services/purchases.service';
+import { LinkChoiceDialog } from './link-choice-dialog';
 
 @Component({
   selector: 'app-idea-detail',
@@ -21,7 +24,11 @@ import { IdeasService } from '../../services/ideas.service';
       <div class="head">
         <input class="title" [(ngModel)]="i.titolo" (blur)="save({ titolo: i.titolo })" aria-label="Titolo" />
         <button mat-flat-button [disabled]="i.stato === 'fatta'" (click)="save({ stato: 'fatta' })"><mat-icon>check</mat-icon> Segna come fatta</button>
-        <button mat-stroked-button disabled title="Disponibile nella fase 3"><mat-icon>shopping_cart</mat-icon> Converti in acquisto</button>
+        @if (purchases().length) {
+          <a mat-stroked-button routerLink="/acquisti"><mat-icon>shopping_cart</mat-icon> Acquisto: {{ purchaseStatus(purchases()[0]) }}</a>
+        } @else {
+          <button mat-stroked-button (click)="convert()" [disabled]="converting()"><mat-icon>shopping_cart</mat-icon> Converti in acquisto</button>
+        }
         <button mat-icon-button (click)="remove()" aria-label="Elimina idea"><mat-icon>delete</mat-icon></button>
       </div>
 
@@ -155,12 +162,16 @@ export class IdeaDetail implements OnInit {
   private readonly areasService = inject(AreasService);
   private readonly pb = inject(PocketBaseService);
   private readonly router = inject(Router);
+  private readonly purchasesService = inject(PurchasesService);
+  private readonly dialog = inject(MatDialog);
 
   readonly id = input.required<string>(); // bound from the route param (withComponentInputBinding)
   readonly idea = signal<Idea | null>(null);
   readonly links = signal<IdeaLink[]>([]);
   readonly areas = signal<Area[]>([]);
   readonly addingLink = signal(false);
+  readonly purchases = signal<Purchase[]>([]);
+  readonly converting = signal(false);
 
   readonly categories = IDEA_CATEGORIES;
   readonly statuses = IDEA_STATUSES;
@@ -169,11 +180,13 @@ export class IdeaDetail implements OnInit {
   imageUrls: Record<string, string> = {};
 
   async ngOnInit(): Promise<void> {
-    const [idea, links, areas] = await Promise.all([
+    const [idea, links, areas, purchases] = await Promise.all([
       this.ideas.get(this.id()),
       this.linksService.listByIdea(this.id()),
       this.areasService.list(),
+      this.purchasesService.byIdea(this.id()),
     ]);
+    this.purchases.set(purchases);
     this.idea.set(idea);
     this.links.set(links);
     this.areas.set(areas);
@@ -185,6 +198,34 @@ export class IdeaDetail implements OnInit {
     const updated = await this.ideas.update(current.id, data);
     Object.assign(current, { stato: updated.stato, expand: updated.expand });
     this.idea.set({ ...current });
+  }
+
+  purchaseStatus(p: Purchase): string {
+    return labelOf(PURCHASE_STATUSES, p.stato).toLowerCase();
+  }
+
+  /** Creates the purchase on the server; with several links the user picks the one to copy. */
+  async convert(): Promise<void> {
+    let linkId: string | undefined;
+    if (this.links().length > 1) {
+      linkId = await new Promise<string | undefined>((resolve) =>
+        this.dialog
+          .open(LinkChoiceDialog, { data: { links: this.links() }, width: '30rem', maxWidth: '95vw' })
+          .afterClosed()
+          .subscribe((id?: string) => resolve(id || undefined)),
+      );
+      if (!linkId) return;
+    }
+    this.converting.set(true);
+    try {
+      const res = await this.purchasesService.convert(this.id(), linkId);
+      this.purchases.set([res.acquisto]);
+      this.idea.update((i) => (i ? { ...i, stato: res.idea.stato } : i));
+    } catch {
+      alert('Conversione non riuscita.');
+    } finally {
+      this.converting.set(false);
+    }
   }
 
   async remove(): Promise<void> {

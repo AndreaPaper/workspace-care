@@ -14,6 +14,7 @@ export const routes: Routes = [
       { path: 'idee/:id', loadComponent: () => import('./pages/idea-detail/idea-detail').then((m) => m.IdeaDetail) },
       { path: 'richieste', loadComponent: () => import('./pages/requests/requests').then((m) => m.Requests) },
       { path: 'controlli', loadComponent: () => import('./pages/controls/controls').then((m) => m.Controls) },
+      { path: 'acquisti', loadComponent: () => import('./pages/purchases/purchases').then((m) => m.Purchases) },
       { path: 'aree', loadComponent: () => import('./pages/areas/areas').then((m) => m.Areas) },
     ],
   },
