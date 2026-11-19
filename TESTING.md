@@ -267,3 +267,73 @@ Giro di test eseguito il 18–19 novembre 2026 su tutte le funzionalità delle f
 |----|-------|------|------|
 | M1 | PASS | Double click does not duplicate: new idea, request, request->idea, dashboard Fatto, inventory, drawer, rule, purchase, check, Fatto dialog, add link, convert | BUG-3 fix verified in the DB |
 | M2 | PASS | Idea detail: saving an invalid value (negative cost) shows an alert and restores the stored value, no unhandled error | new hardening, exercised in the UI |
+
+## Aggiornamento del 19 novembre: schede lista + dettaglio
+
+Dopo il giro di test, Richieste, Idee, Controlli e Acquisti sono state rifatte come pagine «lista a sinistra, dettaglio a destra» senza finestre di dialogo,
+e i controlli possono ripetersi ogni 2 settimane. **I casi dei capitoli C, E, F e G che parlano di finestre (nuova idea, «Fatto», richiesta, acquisto),
+di griglia e di kanban sono superati dalla nuova interfaccia**: le stesse verifiche sono state rifatte qui sotto sul pannello di dettaglio. Il server è stato
+rieseguito per intero (gli stessi 128 casi: 127 superati più l'osservazione sulla quantità 0).
+
+Per questo aggiornamento: app di sviluppo con database pulito, interfaccia pilotata nel browser integrato a 1440 e 375 px, ogni azione verificata anche nel database.
+
+### Server
+| Caso | Esito | Note |
+|------|-------|------|
+| Controllo ogni 2 settimane: prima scadenza = prossima domenica | PASS | giorno della settimana fisso |
+| Controllo ogni 2 settimane fatto: prossima scadenza almeno 8 giorni dopo | PASS | 29/11 per un controllo di domenica fatto il 19/11; l'anteprima nel browser coincide con il server |
+| Creare una richiesta registra «Ricevuta da …»; ogni cambio di stato un evento; altre modifiche nessuno | PASS | |
+| Una nota si aggiunge come evento; eliminando la richiesta spariscono gli eventi; senza accesso non si leggono | PASS | |
+
+### Richieste
+| Caso | Esito |
+|------|-------|
+| Elenco con tab Aperte/Chiuse/Tutte e conteggi, ricerca per titolo o collega, «Ultime chiuse», selezione nell'URL | PASS |
+| Cronologia nel dettaglio; nota inline aggiunta e campo svuotato | PASS |
+| «Segna come fatta» con doppio clic: un solo evento; «Riapri»; «Non fattibile» | PASS |
+| Nuova richiesta nel pannello: pulsante spento se vuoto, un solo record con doppio clic, modifica, eliminazione | PASS |
+| «Trasforma in idea» con doppio clic: una sola idea, collegata; il pulsante sparisce | PASS |
+| Menu Nuovo > Richiesta e ricerca globale aprono o selezionano la richiesta | PASS |
+
+### Controlli
+| Caso | Esito |
+|------|-------|
+| Lista per scadenza con etichette (ritardo, oggi, tra N gg, data); dettaglio con stato e storico | PASS |
+| «Com'è andata oggi?»: esito, nota, Registra con doppio clic = una sola esecuzione; data del prossimo identica a quella del server | PASS |
+| Dopo Registra la lista si riordina ma il dettaglio resta sullo stesso controllo | PASS (dopo correzione, vedi sotto) |
+| «Tutto lo storico»; nuovo controllo ogni 2 settimane con giorno della settimana; passaggio a mensile con giorno del mese; eliminazione | PASS |
+
+### Acquisti
+| Caso | Esito |
+|------|-------|
+| Fascia budget (speso, ordinato da pagare, stima da decidere) con valori calcolati a mano; barra proporzionale | PASS |
+| Lista raggruppata (da montare, in arrivo, da ordinare, da proporre), tab In corso/Montati/Tutti | PASS |
+| Avanzamento con prezzo pagato inline e doppio clic; data d'acquisto automatica; «nella stima» / «sopra la stima» | PASS |
+| «Montato» con l'ultimo acquisto di un'idea: conferma e idea «fatta» | PASS |
+| Nuovo acquisto: errore con link non valido, un solo record con doppio clic; modifica; annulla acquisto | PASS |
+
+### Idee
+| Caso | Esito |
+|------|-------|
+| Tab con conteggi, ricerca, filtro per urgenza, raggruppamento ALTA/MEDIA/BASSA/SENZA URGENZA con copertine | PASS |
+| Urgenza dal dettaglio (un secondo clic la toglie); percorso Idea > Da valutare > Proposta > Approvata con la barra dei passaggi | PASS |
+| «Converti in acquisto»: diretto con 0 o 1 link, scelta del link con 2 link, doppio clic = un solo acquisto, scheda dell'acquisto collegato | PASS |
+| Nuova idea con link (uno con schema ftp scartato) e doppio clic: una sola idea | PASS |
+| Modifica di tutti i campi; costo negativo mostra errore e resta in modifica | PASS |
+| Link: aggiunta valida (doppio clic = uno), non valida con messaggio, immagine di ripiego da URL, rimozione; foto: carica due e rimuovi una | PASS |
+| «Scarta» e «Riapri»; eliminazione con link in cascata | PASS |
+| Vecchio indirizzo `#/idee/:id` reindirizza; id sconosciuto mostra la prima idea; link da dashboard, richieste, acquisti e ricerca selezionano l'idea | PASS |
+
+### Layout e console
+- A 375 px nessuna delle 10 pagine allarga la pagina in orizzontale; lista e dettaglio si impilano e il dettaglio viene portato in vista alla selezione.
+- Nessun errore JavaScript né rifiuto non gestito nelle prove.
+
+### Difetti trovati durante l'aggiornamento (corretti)
+- Senza `id` nell'URL il dettaglio mostrava il primo elemento della lista, che cambiava quando la lista si riordinava (dopo «Registra» il dettaglio saltava a un altro controllo): il primo elemento ora viene fissato nell'URL.
+- In una nuova idea con link non validi il messaggio sui link non aggiunti spariva subito: ora resta visibile.
+- Ritocchi: richieste aperte dalla più vecchia, chip di stato su una riga, spazio nel prezzo pagato.
+
+### Non provato
+- L'installer non è stato installato né avviato.
+- La navigazione da tastiera delle liste (le voci si raggiungono con Tab e si aprono con Invio, ma non l'ho provata a mano) e il comportamento su touch reale.
+- La scelta del link nella conversione usa ancora una piccola finestra di dialogo: è l'unico dialogo rimasto nelle quattro schede.

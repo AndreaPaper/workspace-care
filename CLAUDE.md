@@ -25,7 +25,8 @@ essere veloce da usare e richiedere poca manutenzione.
 
 ## Modello dati (collezioni PocketBase)
 - **aree**, **idee**, **link_idea** (anche `immagine_url` per il fallback manuale), **richieste**, **acquisti**
-  (anche `data_acquisto`, valorizzata dall'hook), **controlli**, **esecuzioni_controllo**, **inventario**,
+  (anche `data_acquisto`, valorizzata dall'hook), **controlli** (frequenze: settimanale, bisettimanale, mensile, trimestrale), **esecuzioni_controllo**,
+  **eventi_richiesta** (cronologia di una richiesta: creazione e cambi di stato scritti dall'hook, note aggiunte dall'app), **inventario**,
   **cassettiere**, **regole**. Campi e valori ammessi: vedi `backend/pb_migrations/`.
 - Importi di `acquisti`: stime e prezzo effettivo sono totali di riga (quantità già compresa).
 
@@ -33,7 +34,10 @@ essere veloce da usare e richiedere poca manutenzione.
 - `anteprima.pb.js` + `lib/preview.js`: all'inserimento di un link scarica og:image/og:title/og:site_name e prezzo;
   mai bloccante, `stato_anteprima = fallita` se non riesce. Amazon e simili si gestiscono col fallback manuale.
 - `controlli.pb.js` + `lib/scadenze.js`: calcolo di `prossima_scadenza`; `POST /api/controlli/:id/fatto` registra
-  l'esecuzione e sposta la scadenza contando da oggi (nessun arretrato).
+  l'esecuzione e sposta la scadenza contando da oggi (nessun arretrato). Bisettimanale: giorno della settimana fisso,
+  prossima occorrenza almeno 8 giorni dopo oggi. La stessa regola è replicata in `frontend/src/app/services/scadenze.ts`
+  solo per l'anteprima «Il prossimo sarà…»: se cambi una, cambia l'altra.
+- `richieste.pb.js` + `lib/richieste.js`: ogni richiesta registra «Ricevuta da…» alla creazione e «Passata a «…»» a ogni cambio di stato.
 - `acquisti.pb.js`: `data_acquisto` automatica; `POST /api/idee/:id/converti` (idempotente) crea l'acquisto da un'idea.
 - `setup.pb.js`: `GET/POST /api/setup` per creare il primo e unico utente.
 
@@ -43,8 +47,14 @@ La grafica di dashboard e sidebar segue la proposta «D · Mix» del design (art
 - **Ricerca globale** (Ctrl K) in cima a ogni pagina: idee, richieste, acquisti, inventario, regole (`core/search`). I risultati aprono la pagina con `?q=`; `?nuova=1` apre il dialog di creazione (`core/page-params.ts`).
 - **Dashboard**: saluto e riepilogo del giorno, avviso se un controllo è in ritardo, tutti i controlli ordinati per scadenza, idee da valutare (stato idea o da_valutare) con filtro per urgenza e smistamento Alta/Media/Bassa con un clic, richieste aperte, idee approvate pronte per l'acquisto e budget.
 
-Pagine: Dashboard, Idee (griglia/kanban, dettaglio con anteprime affiancate), Richieste, Acquisti e budget, Controlli,
-Inventario, Cassettiere, Regole, Riepilogo per la direzione (esporta PDF), Aree.
+**Idee, Richieste, Controlli, Acquisti** sono pagine «lista a sinistra, dettaglio a destra» (tela di design: Idee-Dettaglio, Richieste-Dettaglio,
+Controlli-Dettaglio, Acquisti-Dettaglio), senza finestre di dialogo: creazione e modifica avvengono nel pannello di dettaglio, con l'azione del
+passo successivo in fondo. La selezione sta nell'URL (`#/richieste?id=…`, `?id=new` per il modulo di creazione); `#/idee/:id` reindirizza a `#/idee?id=:id`.
+Pezzi comuni in `core/ui` (`master-detail`, `steps-bar`, `page-head`, `selection`) e stili in `styles/_master-detail.scss`.
+Idee: tab (da valutare / in corso / chiuse), filtro per urgenza (campo `priorita`) e link con anteprime; non ci sono più la griglia con immagini né il kanban.
+Acquisti: fascia budget con speso / ordinato da pagare / stima ancora da decidere (`PurchasesService.totals`).
+
+Altre pagine: Dashboard, Inventario, Cassettiere, Regole, Riepilogo per la direzione (esporta PDF), Aree.
 Il PDF si genera dalla pagina `#/riepilogo` con `webContents.printToPDF` di Electron (stile `@media print`).
 
 ## Convenzioni
