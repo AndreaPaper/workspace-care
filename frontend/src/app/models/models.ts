@@ -155,11 +155,6 @@ export interface Purchase extends RecordModel {
   expand?: { area?: Area; idea?: Idea };
 }
 
-export const DRAWER_TYPES = [
-  { value: 'personale', label: 'Personale' },
-  { value: 'condivisa', label: 'Condivisa' },
-];
-
 export const RULE_TOPICS = [
   { value: 'cassettiere', label: 'Cassettiere' },
   { value: 'cucina', label: 'Cucina' },
@@ -173,7 +168,7 @@ export const RULE_STATUSES = [
   { value: 'attiva', label: 'Attiva' },
 ];
 
-export type DrawerType = 'personale' | 'condivisa';
+export type DrawerType = 'personale' | 'condiviso' | 'libero';
 export type RuleTopic = 'cassettiere' | 'cucina' | 'frigorifero' | 'altro';
 export type RuleStatus = 'da_definire' | 'bozza' | 'attiva';
 
@@ -195,12 +190,20 @@ export interface Container extends RecordModel {
   descrizione: string;
 }
 
-export interface Drawer extends RecordModel {
+/** A drawer unit (cassettiera): a numbered piece of furniture in an area, made of single drawers. */
+export interface DrawerUnit extends RecordModel {
   numero: number;
   area: string;
-  tipo: DrawerType;
-  assegnata_a: string;
   expand?: { area?: Area };
+}
+
+/** One drawer (cassetto) of a unit: personal (assigned to a person), shared (with a content) or free. */
+export interface Drawer extends RecordModel {
+  cassettiera: string;
+  numero: number;
+  tipo: DrawerType;
+  assegnato_a: string;
+  contenuto: string;
 }
 
 export interface Rule extends RecordModel {

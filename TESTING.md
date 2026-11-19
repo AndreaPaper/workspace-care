@@ -372,3 +372,11 @@ Inventario, Cassettiere e Aree sono ora tre schede di `#/ufficio`; i casi B e I 
 - PASS: nessun overflow e nessun errore Angular in console a 375 px.
 - PASS: API anonima sulla nuova collezione: lista vuota, scrittura rifiutata (400).
 - Non provato: eliminare un'area che contiene contenitori (stesso comportamento delle altre relazioni verso `aree`).
+
+## Aggiornamento del 19 novembre: cassettiere disegnate (cassetti singoli)
+
+- PASS: migrazione `1700000011_cassetti.js` su database pulito (collezione `cassetti`, indice unico cassettiera+numero, campi `tipo` e `assegnata_a` tolti da `cassettiere`). I dati esistenti non vengono convertiti: le vecchie cassettiere restano senza cassetti.
+- PASS: cassettiere disegnate per area, cassetti colorati per tipo, «tutta» sul primo cassetto quando sono tutti della stessa persona, legenda contata sui cassetti.
+- PASS: assegnare un solo cassetto, assegnare tutta la cassettiera, passare da personale a libero, nuova cassettiera con N cassetti (numero proposto), numero duplicato rifiutato con messaggio, «+ Cassetto», eliminazione della cassettiera con i suoi cassetti (cascata), creazione in blocco con cassetti per cassettiera.
+- PASS: a 375 px il riquadro di dettaglio sta sotto, senza overflow e senza errori Angular in console.
+- PASS: numero di cassetto duplicato nella stessa cassettiera rifiutato dall'API.
