@@ -8,7 +8,7 @@ essere veloce da usare e richiedere poca manutenzione.
 
 ## Stack
 - Frontend: Angular (ultima versione stabile), componenti standalone, signals, **Angular Material** (non PrimeNG:
-  dalla v22 richiede una licenza PrimeUI). Icone con il pacchetto `material-icons` (nessun font da rete).
+  dalla v22 richiede una licenza PrimeUI). Icone con il pacchetto `material-icons`; font Inter e Plus Jakarta Sans da `@fontsource` (nessun font da rete).
 - Backend: PocketBase (SQLite, API REST). Logica lato server con hook JavaScript in `backend/pb_hooks/`.
 - Distribuzione: **app Windows locale con Electron** (`desktop/`). Gratis, sempre disponibile, nessun hosting.
   Electron avvia `pocketbase.exe` su 127.0.0.1:8090, lo usa anche per servire la build Angular e resta nella tray.
@@ -38,7 +38,12 @@ essere veloce da usare e richiedere poca manutenzione.
 - `setup.pb.js`: `GET/POST /api/setup` per creare il primo e unico utente.
 
 ## Schermate
-Dashboard, Idee (griglia/kanban, dettaglio con anteprime affiancate), Richieste, Acquisti e budget, Controlli,
+La grafica di dashboard e sidebar segue la proposta «D · Mix» del design (artifact "Workspace Care – Dashboard e sidebar").
+- **Sidebar**: rail compatta (92 px; su telefono diventa una striscia scorrevole in alto) con logo, menu **Nuovo** (idea, richiesta, acquisto, controllo), contatori su Richieste (aperte) e Controlli (in ritardo o di oggi), poi Inventario, Cassettiere, Regole, Riepilogo, Aree. I contatori stanno in `services/badges.service.ts`.
+- **Ricerca globale** (Ctrl K) in cima a ogni pagina: idee, richieste, acquisti, inventario, regole (`core/search`). I risultati aprono la pagina con `?q=`; `?nuova=1` apre il dialog di creazione (`core/page-params.ts`).
+- **Dashboard**: saluto e riepilogo del giorno, avviso se un controllo è in ritardo, tutti i controlli ordinati per scadenza, idee da valutare (stato idea o da_valutare) con filtro per urgenza e smistamento Alta/Media/Bassa con un clic, richieste aperte, idee approvate pronte per l'acquisto e budget.
+
+Pagine: Dashboard, Idee (griglia/kanban, dettaglio con anteprime affiancate), Richieste, Acquisti e budget, Controlli,
 Inventario, Cassettiere, Regole, Riepilogo per la direzione (esporta PDF), Aree.
 Il PDF si genera dalla pagina `#/riepilogo` con `webContents.printToPDF` di Electron (stile `@media print`).
 
