@@ -1,4 +1,4 @@
-import { Component, DestroyRef, computed, inject, OnInit, output, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, input, OnInit, output, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -19,7 +19,7 @@ const NO_AREA = 'Senza area';
           <span><i class="sw personal"></i>Personale · {{ count().personale }}</span>
           <span><i class="sw shared"></i>Condiviso · {{ count().condiviso }}</span>
           <span><i class="sw free"></i>Libero · {{ count().libero }}</span>
-          <a routerLink="/regole">Regola sulle cassettiere</a>
+          @if (!areaId()) { <a routerLink="/regole">Regola sulle cassettiere</a> }
         </div>
         <button type="button" class="btn btn-primary small" (click)="newUnit()">+ Cassettiera</button>
       </div>
@@ -29,7 +29,7 @@ const NO_AREA = 'Senza area';
         <div class="areas">
           @for (g of groups(); track g.name) {
             <div class="area-box">
-              <strong>{{ g.name }}</strong>
+              @if (!areaId()) { <strong>{{ g.name }}</strong> }
               <div class="grid">
                 @for (u of g.units; track u.unit.id) {
                   <div class="unit">
@@ -50,7 +50,7 @@ const NO_AREA = 'Senza area';
               </div>
             </div>
           } @empty {
-            <p class="empty">Nessuna cassettiera. Aggiungine una con «+ Cassettiera» oppure creale tutte insieme qui sotto.</p>
+            <p class="empty">{{ areaId() ? "Nessuna cassettiera in quest'area. Aggiungine una con «+ Cassettiera»." : "Nessuna cassettiera. Aggiungine una con «+ Cassettiera» oppure creale tutte insieme qui sotto." }}</p>
           }
         </div>
 
@@ -107,6 +107,11 @@ const NO_AREA = 'Senza area';
         }
       </div>
 
+      @if (areaId() && freeSummary()) {
+        <p class="freeline">Liberi: {{ freeSummary() }} · <a routerLink="/ufficio" [queryParams]="{ tab: 'cassettiere' }">Tutte le cassettiere</a></p>
+      }
+
+      @if (!areaId()) {
       <details class="bulk-box">
         <summary>Crea più cassettiere insieme</summary>
         <form class="bulk" (ngSubmit)="createUpTo()">
@@ -121,6 +126,7 @@ const NO_AREA = 'Senza area';
           <button type="submit" class="btn btn-outline small" [disabled]="!upTo || bulkRunning()">Crea quelle mancanti</button>
         </form>
       </details>
+      }
     </section>
   `,
   styles: `
@@ -135,6 +141,8 @@ const NO_AREA = 'Senza area';
     .sw.free { background: #fff; border: 1px dashed #a8a291; }
     .btn.small { height: 40px; font-size: 13px; padding: 0 16px; }
     .error { margin: 0; color: #b42318; }
+    .freeline { margin: 0; font-size: 13px; color: #45473f; }
+    .freeline a { color: #245a41; font-weight: 600; }
     .cols { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
     .cols.with-panel { grid-template-columns: minmax(0, 1fr) 320px; }
     .areas { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
@@ -187,6 +195,9 @@ export class Drawers implements OnInit {
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
 
+  /** When set, only the units of this area are shown (the area page); creation and bulk tools adapt. */
+  readonly areaId = input('');
+
   /** Emitted after any change, so that the tab counters of the Ufficio page can refresh. */
   readonly changed = output<void>();
 
@@ -208,8 +219,11 @@ export class Drawers implements OnInit {
   dd = { tipo: 'libero' as DrawerType, assegnato_a: '', contenuto: '', tutta: false };
   ud = { numero: 1, area: '', cassetti: 3 };
 
+  private readonly shownUnits = computed(() => this.units().filter((u) => !this.areaId() || u.area === this.areaId()));
+
   readonly count = computed(() => {
-    const list = this.drawers();
+    const ids = new Set(this.shownUnits().map((u) => u.id));
+    const list = this.drawers().filter((d) => ids.has(d.cassettiera));
     return {
       personale: list.filter((d) => d.tipo === 'personale').length,
       condiviso: list.filter((d) => d.tipo === 'condiviso').length,
@@ -220,7 +234,7 @@ export class Drawers implements OnInit {
   /** One box per area, units by number; units without an area go last. */
   readonly groups = computed(() => {
     const by = new Map<string, { unit: DrawerUnit; drawers: Drawer[]; whole: boolean }[]>();
-    for (const unit of this.units()) {
+    for (const unit of this.shownUnits()) {
       const drawers = this.drawers().filter((d) => d.cassettiera === unit.id).sort((a, b) => a.numero - b.numero);
       const name = unit.expand?.area?.nome ?? NO_AREA;
       const first = drawers[0];
@@ -232,6 +246,20 @@ export class Drawers implements OnInit {
       .map(([name, units]) => ({ name, units: units.sort((x, y) => x.unit.numero - y.unit.numero) }));
   });
 
+  /** "cassettiera 3 (cassetti 2 e 3), cassettiera 5 (tutta)" for the units with free drawers. */
+  readonly freeSummary = computed(() => {
+    const parts: string[] = [];
+    for (const g of this.groups()) {
+      for (const u of g.units) {
+        const free = u.drawers.filter((d) => d.tipo === 'libero').map((d) => d.numero);
+        if (!free.length) continue;
+        const list = free.length === u.drawers.length ? 'tutta' : (free.length === 1 ? 'cassetto ' : 'cassetti ') + (free.length > 1 ? free.slice(0, -1).join(', ') + ' e ' + free[free.length - 1] : free[0]);
+        parts.push(`cassettiera ${u.unit.numero} (${list})`);
+      }
+    }
+    return parts.join(', ');
+  });
+
   readonly selectedDrawer = computed(() => {
     const s = this.sel();
     return s.startsWith('d:') ? (this.drawers().find((d) => d.id === s.slice(2)) ?? null) : null;
@@ -241,6 +269,11 @@ export class Drawers implements OnInit {
     await this.reload(false);
     // From the global search: ?cassetto=<id> opens that drawer (also when this tab is already open), then the parameter is dropped.
     this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((p) => {
+      if (p.has('nuova') && !this.areaId()) {
+        this.newUnit(p.get('area') ?? '');
+        void this.router.navigate([], { queryParams: { nuova: null, area: null }, queryParamsHandling: 'merge', replaceUrl: true });
+        return;
+      }
       const id = p.get('cassetto');
       if (!id) return;
       const d = this.drawers().find((x) => x.id === id);
@@ -291,9 +324,9 @@ export class Drawers implements OnInit {
     this.sel.set('u:' + u.id);
   }
 
-  newUnit(): void {
+  newUnit(area = ''): void {
     this.error.set('');
-    this.ud = { numero: Math.max(0, ...this.units().map((u) => u.numero)) + 1, area: '', cassetti: 3 };
+    this.ud = { numero: Math.max(0, ...this.units().map((u) => u.numero)) + 1, area: area || this.areaId(), cassetti: 3 };
     this.sel.set('u:new');
   }
 

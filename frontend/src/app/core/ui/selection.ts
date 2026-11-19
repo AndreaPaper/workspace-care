@@ -15,7 +15,7 @@ export const NEW_ID = 'new';
 
 export function selectItem(router: Router, id: string | null): void {
   // nuova/q are cleared too: they are one-shot parameters (see watchPageParams).
-  void router.navigate([], { queryParams: { id, nuova: null, q: null }, queryParamsHandling: 'merge' });
+  void router.navigate([], { queryParams: { id, nuova: null, q: null, area: null }, queryParamsHandling: 'merge' });
   // On a narrow screen the detail sits below the list: bring it into view.
   if (id && window.innerWidth < 900) {
     setTimeout(() => document.querySelector('.md-detail')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);

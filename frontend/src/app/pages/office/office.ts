@@ -69,7 +69,7 @@ export class Office implements OnInit {
   }
 
   go(tab: OfficeTab): void {
-    void this.router.navigate([], { queryParams: { tab, q: null, nuova: null }, queryParamsHandling: 'merge' });
+    void this.router.navigate([], { queryParams: { tab, q: null, nuova: null, area: null }, queryParamsHandling: 'merge' });
   }
 
   async refresh(): Promise<void> {

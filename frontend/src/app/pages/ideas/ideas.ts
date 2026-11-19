@@ -410,7 +410,7 @@ export class Ideas implements OnInit {
     this.areas.set(areas);
     await this.loadCovers();
     watchPageParams(this.route, this.router, this.destroyRef, {
-      onNew: () => this.startNew(),
+      onNew: (area) => this.startNew(area),
       onSearch: (q) => {
         this.search.set(q);
         this.urgency.set(null);
@@ -627,8 +627,8 @@ export class Ideas implements OnInit {
     return { titolo: '', area: '', categoria: '', stato: 'idea', priorita: '', costoMin: null, costoMax: null, descrizione: '', note: '', urls: '' };
   }
 
-  startNew(): void {
-    this.draft = this.emptyDraft();
+  startNew(area = ''): void {
+    this.draft = { ...this.emptyDraft(), area };
     this.error.set('');
     this.select(NEW_ID);
   }

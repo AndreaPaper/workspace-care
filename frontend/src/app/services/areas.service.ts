@@ -10,6 +10,10 @@ export class AreasService {
     return this.col.getFullList<Area>({ sort: 'nome' });
   }
 
+  get(id: string): Promise<Area> {
+    return this.col.getOne<Area>(id);
+  }
+
   create(nome: string): Promise<Area> {
     return this.col.create<Area>({ nome });
   }

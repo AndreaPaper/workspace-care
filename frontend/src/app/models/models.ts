@@ -210,6 +210,8 @@ export interface Rule extends RecordModel {
   tema: RuleTopic;
   testo: string;
   stato: RuleStatus;
+  /** Optional: the area the rule is about (shown on the area page). */
+  area: string;
 }
 
 /** One line of a request's history: status changes are written by the server, notes by the app. */

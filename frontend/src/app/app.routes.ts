@@ -21,6 +21,7 @@ export const routes: Routes = [
       { path: 'richieste', loadComponent: () => import('./pages/requests/requests').then((m) => m.Requests) },
       { path: 'controlli', loadComponent: () => import('./pages/controls/controls').then((m) => m.Controls) },
       { path: 'acquisti', loadComponent: () => import('./pages/purchases/purchases').then((m) => m.Purchases) },
+      { path: 'ufficio/aree/:id', loadComponent: () => import('./pages/areas/area-detail').then((m) => m.AreaDetail) },
       { path: 'ufficio', loadComponent: () => import('./pages/office/office').then((m) => m.Office) },
       { path: 'inventario', redirectTo: toOffice('inventario') },
       { path: 'cassettiere', redirectTo: toOffice('cassettiere') },

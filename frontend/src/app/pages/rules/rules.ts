@@ -5,7 +5,8 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 import { watchPageParams } from '../../core/page-params';
-import { RULE_STATUSES, RULE_TOPICS, Rule, RuleStatus, RuleTopic } from '../../models/models';
+import { Area, RULE_STATUSES, RULE_TOPICS, Rule, RuleStatus, RuleTopic } from '../../models/models';
+import { AreasService } from '../../services/areas.service';
 import { RulesService } from '../../services/rules.service';
 
 const NEXT_STATUS: Record<RuleStatus, RuleStatus | null> = { da_definire: 'bozza', bozza: 'attiva', attiva: null };
@@ -59,6 +60,7 @@ const ORDER: Record<RuleStatus, number> = { attiva: 0, bozza: 1, da_definire: 2 
                   @else { <span class="tag">{{ r.stato === 'bozza' ? 'Bozza' : 'Da definire' }}</span> }
                 </div>
                 <button type="button" class="text" (click)="startEdit(r)" [attr.aria-label]="'Modifica la regola: ' + r.testo">{{ r.testo }}</button>
+                @if (areaName(r.area); as an) { <span class="areatag">{{ an }}</span> }
                 @if (r.stato === 'bozza') { <button type="button" class="act" (click)="advance(r)">Attiva</button> }
                 @if (r.stato === 'da_definire') { <button type="button" class="act" (click)="writeDraft(r)">Scrivi la bozza</button> }
               </article>
@@ -81,6 +83,12 @@ const ORDER: Record<RuleStatus, number> = { attiva: 0, bozza: 1, da_definire: 2 
           <label>Tema
             <select name="tema" [(ngModel)]="draft.tema">
               @for (t of topics; track t.value) { <option [value]="t.value">{{ t.label }}</option> }
+            </select>
+          </label>
+          <label>Area (facoltativa)
+            <select name="area" [(ngModel)]="draft.area">
+              <option value="">(nessuna)</option>
+              @for (a of areas(); track a.id) { <option [value]="a.id">{{ a.nome }}</option> }
             </select>
           </label>
           <label>Stato
@@ -130,6 +138,7 @@ const ORDER: Record<RuleStatus, number> = { attiva: 0, bozza: 1, da_definire: 2 
     .todo .tag { background: #fbefc8; color: #5c3f00; }
     .text { border: 0; background: transparent; padding: 0; text-align: left; color: #22241f; font-size: 15px; line-height: 1.45; white-space: pre-wrap; }
     .text:hover { text-decoration: underline dotted; }
+    .areatag { grid-column: 2; justify-self: start; font-size: 12px; color: #5a5c53; }
     .act { grid-column: 2; justify-self: start; height: 36px; padding: 0 14px; border: 1px solid #2e6a4f; border-radius: 999px; background: #fff; color: #173d2b; font-weight: 700; font-size: 13px; }
     .edit { display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: 14px; border: 1.5px solid #2f6fb5; background: #f5f9fe; }
     .edit textarea { width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #cfc9bb; border-radius: 10px; font: 15px/1.45 Inter, system-ui, sans-serif; resize: vertical; }
@@ -154,7 +163,9 @@ export class Rules implements OnInit {
   readonly saving = signal(false);
   /** Id of the rule being edited, 'new' for a rule being created, '' for none. */
   readonly editingId = signal('');
-  draft: { tema: RuleTopic; stato: RuleStatus; testo: string } = { tema: 'altro', stato: 'bozza', testo: '' };
+  readonly areas = signal<Area[]>([]);
+  private readonly areasService = inject(AreasService);
+  draft: { tema: RuleTopic; stato: RuleStatus; testo: string; area: string } = { tema: 'altro', stato: 'bozza', testo: '', area: '' };
 
   readonly onlyToFix = toSignal(this.route.queryParamMap.pipe(map((p) => p.get('da_sistemare') === '1')), { initialValue: false });
 
@@ -187,7 +198,9 @@ export class Rules implements OnInit {
 
   private async reload(): Promise<void> {
     try {
-      this.rules.set(await this.service.list());
+      const [rules, areas] = await Promise.all([this.service.list(), this.areasService.list()]);
+      this.rules.set(rules);
+      this.areas.set(areas);
     } catch {
       this.error.set('Impossibile caricare le regole.');
     }
@@ -197,15 +210,19 @@ export class Rules implements OnInit {
     void this.router.navigate([], { queryParams: { da_sistemare: this.onlyToFix() ? null : 1 }, queryParamsHandling: 'merge' });
   }
 
+  areaName(id: string): string {
+    return this.areas().find((a) => a.id === id)?.nome ?? '';
+  }
+
   startNew(): void {
     this.error.set('');
-    this.draft = { tema: 'altro', stato: 'bozza', testo: '' };
+    this.draft = { tema: 'altro', stato: 'bozza', testo: '', area: '' };
     this.editingId.set('new');
   }
 
   startEdit(r: Rule): void {
     this.error.set('');
-    this.draft = { tema: r.tema, stato: r.stato, testo: r.testo };
+    this.draft = { tema: r.tema, stato: r.stato, testo: r.testo, area: r.area ?? '' };
     this.editingId.set(r.id);
   }
 
@@ -217,7 +234,7 @@ export class Rules implements OnInit {
     if (this.saving() || !this.draft.testo.trim()) return;
     this.saving.set(true);
     this.error.set('');
-    const payload = { tema: this.draft.tema, stato: this.draft.stato, testo: this.draft.testo.trim() };
+    const payload = { tema: this.draft.tema, stato: this.draft.stato, testo: this.draft.testo.trim(), area: this.draft.area };
     try {
       if (this.editingId() === 'new') await this.service.create(payload);
       else await this.service.update(this.editingId(), payload);

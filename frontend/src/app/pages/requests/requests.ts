@@ -282,7 +282,7 @@ export class Requests implements OnInit {
     this.areas.set(areas);
     this.ideas.set(ideas);
     watchPageParams(this.route, this.router, this.destroyRef, {
-      onNew: () => this.startNew(),
+      onNew: (area) => this.startNew(area),
       onSearch: (q) => {
         this.search.set(q);
         this.tab.set('tutte');
@@ -413,8 +413,8 @@ export class Requests implements OnInit {
     return { titolo: '', richiedente: '', data: todayDay(), area: '', descrizione: '' };
   }
 
-  startNew(): void {
-    this.draft = this.emptyDraft();
+  startNew(area = ''): void {
+    this.draft = { ...this.emptyDraft(), area };
     this.error.set('');
     this.select(NEW_ID);
   }

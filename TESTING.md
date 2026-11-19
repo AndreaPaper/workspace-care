@@ -384,3 +384,11 @@ Inventario, Cassettiere e Aree sono ora tre schede di `#/ufficio`; i casi B e I 
 ## Aggiornamento del 19 novembre: ricerca dei cassetti
 
 - PASS: Ctrl K trova i cassetti per persona o contenuto, con «Cassettiera N · cassetto M · area»; il clic apre la scheda Cassettiere con quel cassetto selezionato, anche quando la scheda è già aperta.
+
+## Aggiornamento del 19 novembre: schede delle aree e dettaglio area
+
+- PASS: migrazione `1700000012_regole_area.js` (campo `area` facoltativo sulle regole); nella bacheca Regole l'area si sceglie nella modifica in linea e compare accanto alla regola.
+- PASS: scheda Aree con numeri per area, controllo in ritardo in rosso, «Ancora vuota» + «Elimina area» solo per le aree senza collegamenti, nuova area, nome duplicato rifiutato, rinomina, contatore della scheda aggiornato.
+- PASS: dettaglio area (`#/ufficio/aree/:id`): etichette con numeri, cassettiere dell'area con assegnazione di un cassetto, riga dei cassetti liberi, regole, idee aperte, richieste con «Prendi in carico» e «Fatta», rinomina, «Aggiungi qui → Idea» con area preimpostata.
+- PASS: nessun overflow e nessun errore Angular in console a 375 px, sia nella scheda sia nel dettaglio.
+- Non provato: «Aggiungi qui» per Oggetto e Cassettiera (stesso meccanismo, parametro `area` letto dalle rispettive pagine), area inesistente nel dettaglio (messaggio nel codice, non visto a schermo).

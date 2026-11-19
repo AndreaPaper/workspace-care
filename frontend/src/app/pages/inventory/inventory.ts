@@ -247,7 +247,7 @@ export class Inventory implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await this.reload(false);
-    watchPageParams(this.route, this.router, this.destroyRef, { onSearch: (q) => this.search.set(q) });
+    watchPageParams(this.route, this.router, this.destroyRef, { onSearch: (q) => this.search.set(q), onNew: (area) => this.newItem(area) });
   }
 
   private async reload(notify = true): Promise<void> {
@@ -266,9 +266,9 @@ export class Inventory implements OnInit {
     return this.areas().find((a) => a.id === id)?.nome ?? NO_AREA;
   }
 
-  newItem(): void {
+  newItem(area = ''): void {
     this.error.set('');
-    this.itemDraft = { nome: '', area: '', contenitore: '', posizione: '', note: '' };
+    this.itemDraft = { nome: '', area, contenitore: '', posizione: '', note: '' };
     this.editing.set('i:new');
   }
 
