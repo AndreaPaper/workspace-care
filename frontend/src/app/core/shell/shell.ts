@@ -18,7 +18,7 @@ interface NavItem {
   imports: [RouterOutlet, RouterLink, RouterLinkActive, MatIconModule, MatMenuModule, GlobalSearch],
   template: `
     <nav class="rail" aria-label="Navigazione principale">
-      <a class="logo" routerLink="/dashboard" aria-label="Workspace Care, vai a Oggi">WC</a>
+      <a class="logo" routerLink="/dashboard" aria-label="Workspace Care, vai a Oggi"><img src="logo.png" alt="" width="44" height="44" /></a>
 
       <button type="button" class="item new" [matMenuTriggerFor]="newMenu" aria-label="Nuovo elemento">
         <span class="plus"><mat-icon aria-hidden="true">add</mat-icon></span>
@@ -61,7 +61,9 @@ interface NavItem {
   styles: `
     :host { display: flex; min-height: 100vh; font-family: Inter, system-ui, sans-serif; color: #22241f; }
     .rail { flex: none; width: 92px; box-sizing: border-box; padding: 16px 10px; background: #fff; border-right: 1px solid #e6e2d9; display: flex; flex-direction: column; align-items: center; gap: 4px; position: sticky; top: 0; height: 100vh; overflow-x: hidden; overflow-y: auto; scrollbar-width: thin; }
-    .logo { width: 44px; height: 44px; flex: none; margin-bottom: 10px; border-radius: 14px; background: #2f6fb5; color: #fff; display: flex; align-items: center; justify-content: center; font: 800 16px 'Plus Jakarta Sans', Inter, sans-serif; text-decoration: none; }
+    .logo { width: 44px; height: 44px; flex: none; margin-bottom: 10px; border-radius: 999px; display: block; }
+    .logo img { display: block; width: 44px; height: 44px; }
+    .logo:focus-visible { outline: 3px solid #2f6fb5; outline-offset: 2px; }
     .item { width: 72px; box-sizing: border-box; padding: 6px 0 8px; border: 0; background: transparent; display: flex; flex-direction: column; align-items: center; gap: 4px; border-radius: 8px; color: #3b4a5c; text-decoration: none; font: 500 11px Inter, system-ui, sans-serif; cursor: pointer; flex: none; }
     .item:hover { background: #f3f0e9; }
     .item:focus-visible { outline: 3px solid #2f6fb5; outline-offset: 1px; }

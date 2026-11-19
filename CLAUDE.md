@@ -1,9 +1,9 @@
-# Workspace Care – app desktop personale per la cura dell'ufficio
+﻿# Workspace Care â€“ app desktop personale per la cura dell'ufficio
 
 ## Contesto
 App personale (un solo utente) per gestire il ruolo di "Workspace Care" in un ufficio di consulenti programmatori:
 ordine e riorganizzazione degli spazi, idee di miglioramento, acquisti, manutenzione, richieste dei colleghi,
-controlli periodici e regole condivise. Il lavoro si svolge a margine dell'attività di sviluppo: l'app deve
+controlli periodici e regole condivise. Il lavoro si svolge a margine dell'attivitÃ  di sviluppo: l'app deve
 essere veloce da usare e richiedere poca manutenzione.
 
 ## Stack
@@ -18,47 +18,47 @@ essere veloce da usare e richiedere poca manutenzione.
 - Interfaccia in italiano, responsive.
 
 ## Struttura del repository
-- `frontend/` – app Angular (`src/app/{core,models,services,pages}`)
-- `backend/` – `pocketbase.exe` (non versionato), `pb_migrations/`, `pb_hooks/`
-- `desktop/` – processo principale Electron, tray, notifiche, export PDF, installer (electron-builder)
+- `frontend/` â€“ app Angular (`src/app/{core,models,services,pages}`)
+- `backend/` â€“ `pocketbase.exe` (non versionato), `pb_migrations/`, `pb_hooks/`
+- `desktop/` â€“ processo principale Electron, tray, notifiche, export PDF, installer (electron-builder)
 - Le collezioni PocketBase si definiscono con **migrazioni JS versionate**, non a mano dal pannello.
 
 ## Modello dati (collezioni PocketBase)
 - **aree**, **idee**, **link_idea** (anche `immagine_url` per il fallback manuale), **richieste**, **acquisti**
   (anche `data_acquisto`, valorizzata dall'hook), **controlli** (frequenze: settimanale, bisettimanale, mensile, trimestrale), **esecuzioni_controllo**,
-  **eventi_richiesta** (cronologia di una richiesta: creazione e cambi di stato scritti dall'hook, note aggiunte dall'app), **inventario** (con `contenitore` facoltativo; `posizione` è il punto dentro il contenitore), **contenitori** (nome, area, descrizione),
+  **eventi_richiesta** (cronologia di una richiesta: creazione e cambi di stato scritti dall'hook, note aggiunte dall'app), **inventario** (con `contenitore` facoltativo; `posizione` Ã¨ il punto dentro il contenitore), **contenitori** (nome, area, descrizione),
   **cassettiere** (numero e area), **cassetti** (i singoli cassetti di una cassettiera: tipo personale | condiviso | libero, `assegnato_a`, `contenuto`; eliminati a cascata), **regole** (con `area` facoltativa). Campi e valori ammessi: vedi `backend/pb_migrations/`.
-- Importi di `acquisti`: stime e prezzo effettivo sono totali di riga (quantità già compresa).
+- Importi di `acquisti`: stime e prezzo effettivo sono totali di riga (quantitÃ  giÃ  compresa).
 
 ## Logica lato server (`backend/pb_hooks/`)
 - `anteprima.pb.js` + `lib/preview.js`: all'inserimento di un link scarica og:image/og:title/og:site_name e prezzo;
   mai bloccante, `stato_anteprima = fallita` se non riesce. Amazon e simili si gestiscono col fallback manuale.
 - `controlli.pb.js` + `lib/scadenze.js`: calcolo di `prossima_scadenza`; `POST /api/controlli/:id/fatto` registra
   l'esecuzione e sposta la scadenza contando da oggi (nessun arretrato). Bisettimanale: giorno della settimana fisso,
-  prossima occorrenza almeno 8 giorni dopo oggi. La stessa regola è replicata in `frontend/src/app/services/scadenze.ts`
-  solo per l'anteprima «Il prossimo sarà…»: se cambi una, cambia l'altra.
-- `richieste.pb.js` + `lib/richieste.js`: ogni richiesta registra «Ricevuta da…» alla creazione e «Passata a «…»» a ogni cambio di stato.
+  prossima occorrenza almeno 8 giorni dopo oggi. La stessa regola Ã¨ replicata in `frontend/src/app/services/scadenze.ts`
+  solo per l'anteprima Â«Il prossimo sarÃ â€¦Â»: se cambi una, cambia l'altra.
+- `richieste.pb.js` + `lib/richieste.js`: ogni richiesta registra Â«Ricevuta daâ€¦Â» alla creazione e Â«Passata a Â«â€¦Â»Â» a ogni cambio di stato.
 - `acquisti.pb.js`: `data_acquisto` automatica; `POST /api/idee/:id/converti` (idempotente) crea l'acquisto da un'idea.
 - `setup.pb.js`: `GET/POST /api/setup` per creare il primo e unico utente.
 
 ## Schermate
-La grafica di dashboard e sidebar segue la proposta «D · Mix» del design (artifact "Workspace Care – Dashboard e sidebar").
-- **Sidebar**: rail compatta (92 px; su telefono diventa una striscia scorrevole in alto) con logo, menu **Nuovo** (idea, richiesta, acquisto, controllo), contatori su Richieste (aperte) e Controlli (in ritardo o di oggi), poi Ufficio (icona mappa), Regole, Riepilogo. I contatori stanno in `services/badges.service.ts`.
-- **Ricerca globale** (Ctrl K) in cima a ogni pagina: idee, richieste, acquisti, inventario, cassetti (per persona o contenuto), regole (`core/search`). I risultati aprono la pagina con `?q=`; un cassetto apre la scheda Cassettiere con `?cassetto=<id>` già selezionato; `?nuova=1` apre il dialog di creazione (`core/page-params.ts`).
-- **Dashboard**: saluto e riepilogo del giorno, avviso se un controllo è in ritardo, tutti i controlli ordinati per scadenza, idee da valutare (stato idea o da_valutare) con filtro per urgenza e smistamento Alta/Media/Bassa con un clic, richieste aperte, idee approvate pronte per l'acquisto e budget.
+La grafica di dashboard e sidebar segue la proposta Â«D Â· MixÂ» del design (artifact "Workspace Care â€“ Dashboard e sidebar").
+- **Sidebar**: rail compatta (92 px; su telefono diventa una striscia scorrevole in alto) con il logo dell'app (`frontend/public/logo.png`, ricavato da `icons/logo_office_care.jpg`), menu **Nuovo** (idea, richiesta, acquisto, controllo), contatori su Richieste (aperte) e Controlli (in ritardo o di oggi), poi Ufficio (icona mappa), Regole, Riepilogo. I contatori stanno in `services/badges.service.ts`.
+- **Ricerca globale** (Ctrl K) in cima a ogni pagina: idee, richieste, acquisti, inventario, cassetti (per persona o contenuto), regole (`core/search`). I risultati aprono la pagina con `?q=`; un cassetto apre la scheda Cassettiere con `?cassetto=<id>` giÃ  selezionato; `?nuova=1` apre il dialog di creazione (`core/page-params.ts`).
+- **Dashboard**: saluto e riepilogo del giorno, avviso se un controllo Ã¨ in ritardo, tutti i controlli ordinati per scadenza, idee da valutare (stato idea o da_valutare) con filtro per urgenza e smistamento Alta/Media/Bassa con un clic, richieste aperte, idee approvate pronte per l'acquisto e budget.
 
-**Idee, Richieste, Controlli, Acquisti** sono pagine «lista a sinistra, dettaglio a destra» (tela di design: Idee-Dettaglio, Richieste-Dettaglio,
+**Idee, Richieste, Controlli, Acquisti** sono pagine Â«lista a sinistra, dettaglio a destraÂ» (tela di design: Idee-Dettaglio, Richieste-Dettaglio,
 Controlli-Dettaglio, Acquisti-Dettaglio), senza finestre di dialogo: creazione e modifica avvengono nel pannello di dettaglio, con l'azione del
-passo successivo in fondo. La selezione sta nell'URL (`#/richieste?id=…`, `?id=new` per il modulo di creazione); `#/idee/:id` reindirizza a `#/idee?id=:id`.
+passo successivo in fondo. La selezione sta nell'URL (`#/richieste?id=â€¦`, `?id=new` per il modulo di creazione); `#/idee/:id` reindirizza a `#/idee?id=:id`.
 Pezzi comuni in `core/ui` (`master-detail`, `steps-bar`, `page-head`, `selection`) e stili in `styles/_master-detail.scss`.
-Idee: tab (da valutare / in corso / chiuse), filtro per urgenza (campo `priorita`) e link con anteprime; non ci sono più la griglia con immagini né il kanban.
+Idee: tab (da valutare / in corso / chiuse), filtro per urgenza (campo `priorita`) e link con anteprime; non ci sono piÃ¹ la griglia con immagini nÃ© il kanban.
 Acquisti: fascia budget con speso / ordinato da pagare / stima ancora da decidere (`PurchasesService.totals`).
 
-**Ufficio** (`#/ufficio?tab=inventario|cassettiere|aree`, `pages/office`): un'unica voce di menu con tre schede e contatori; sostituisce le voci Inventario, Cassettiere e Aree (i vecchi indirizzi `#/inventario`, `#/cassettiere`, `#/aree` reindirizzano alla scheda giusta, conservando `?q=`). Inventario: oggetti raggruppati per area e per contenitore (armadio, scatola…), con «Senza contenitore» e «Metti in…»; modifica in linea, niente dialog; eliminando un contenitore gli oggetti restano. Cassettiere: legenda (personale / condiviso / libero, contata sui cassetti), un riquadro per area con le cassettiere disegnate come mobili di cassetti impilati colorati per tipo; un clic su un cassetto apre a destra il riquadro per assegnarlo (una persona può avere anche un solo cassetto, oppure tutta la cassettiera); un clic sull'etichetta «Cassettiera N» permette di cambiare numero e area, aggiungere un cassetto o eliminarla. «+ Cassettiera» chiede anche il numero di cassetti. Aree: una scheda per area (nome con rinomina, oggetti / cassettiere o contenitori / controlli, riga di riepilogo, riquadro rosso se un controllo è in ritardo, «Elimina area» solo se vuota, «Nuova area»); un clic apre il dettaglio `#/ufficio/aree/:id` (`area-detail.ts`) con cassettiere dell'area (stesso componente `Drawers` con `areaId`), regole, idee aperte e richieste con azioni rapide, e «Aggiungi qui» (`?nuova=1&area=<id>` preimposta l'area in Idee, Richieste, Inventario e Cassettiere). I conteggi stanno in `services/area-overview.service.ts`. I componenti `Inventory`, `Drawers`, `Areas` emettono `changed` per aggiornare i contatori.
+**Ufficio** (`#/ufficio?tab=inventario|cassettiere|aree`, `pages/office`): un'unica voce di menu con tre schede e contatori; sostituisce le voci Inventario, Cassettiere e Aree (i vecchi indirizzi `#/inventario`, `#/cassettiere`, `#/aree` reindirizzano alla scheda giusta, conservando `?q=`). Inventario: oggetti raggruppati per area e per contenitore (armadio, scatolaâ€¦), con Â«Senza contenitoreÂ» e Â«Metti inâ€¦Â»; modifica in linea, niente dialog; eliminando un contenitore gli oggetti restano. Cassettiere: legenda (personale / condiviso / libero, contata sui cassetti), un riquadro per area con le cassettiere disegnate come mobili di cassetti impilati colorati per tipo; un clic su un cassetto apre a destra il riquadro per assegnarlo (una persona puÃ² avere anche un solo cassetto, oppure tutta la cassettiera); un clic sull'etichetta Â«Cassettiera NÂ» permette di cambiare numero e area, aggiungere un cassetto o eliminarla. Â«+ CassettieraÂ» chiede anche il numero di cassetti. Aree: una scheda per area (nome con rinomina, oggetti / cassettiere o contenitori / controlli, riga di riepilogo, riquadro rosso se un controllo Ã¨ in ritardo, Â«Elimina areaÂ» solo se vuota, Â«Nuova areaÂ»); un clic apre il dettaglio `#/ufficio/aree/:id` (`area-detail.ts`) con cassettiere dell'area (stesso componente `Drawers` con `areaId`), regole, idee aperte e richieste con azioni rapide, e Â«Aggiungi quiÂ» (`?nuova=1&area=<id>` preimposta l'area in Idee, Richieste, Inventario e Cassettiere). I conteggi stanno in `services/area-overview.service.ts`. I componenti `Inventory`, `Drawers`, `Areas` emettono `changed` per aggiornare i contatori.
 
-**Regole** (`pages/rules`): bacheca con un riquadro per tema, senza dialog. Attive su fondo verde, bozze tratteggiate con «Attiva», da definire con «Scrivi la bozza»; clic sul testo = modifica in linea; avviso «N regole da sistemare» con filtro `?da_sistemare=1`. Il pulsante «Cartello» apre `#/regole/cartello?tema=…` (`rule-sign.ts`): le sole regole attive del tema in grande, esportabili in PDF come il riepilogo.
+**Regole** (`pages/rules`): bacheca con un riquadro per tema, senza dialog. Attive su fondo verde, bozze tratteggiate con Â«AttivaÂ», da definire con Â«Scrivi la bozzaÂ»; clic sul testo = modifica in linea; avviso Â«N regole da sistemareÂ» con filtro `?da_sistemare=1`. Il pulsante Â«CartelloÂ» apre `#/regole/cartello?tema=â€¦` (`rule-sign.ts`): le sole regole attive del tema in grande, esportabili in PDF come il riepilogo.
 
-**Riepilogo** (`pages/report`, «Anteprima del foglio»): a sinistra le impostazioni (periodo a pulsanti, sezioni con conteggi, «Mostra i costi», due righe di apertura facoltative, «Esporta PDF» con stima delle pagine A4 e data dell'ultimo invio in `localStorage`); a destra l'anteprima del foglio con 4 numeri chiave. In stampa resta solo il foglio. Le righe di apertura non vengono salvate.
+**Riepilogo** (`pages/report`, Â«Anteprima del foglioÂ»): a sinistra le impostazioni (periodo a pulsanti, sezioni con conteggi, Â«Mostra i costiÂ», due righe di apertura facoltative, Â«Esporta PDFÂ» con stima delle pagine A4 e data dell'ultimo invio in `localStorage`); a destra l'anteprima del foglio con 4 numeri chiave. In stampa resta solo il foglio. Le righe di apertura non vengono salvate.
 
 Altre pagine: Dashboard.
 Il PDF si genera dalla pagina `#/riepilogo` con `webContents.printToPDF` di Electron (stile `@media print`).
@@ -66,7 +66,7 @@ Il PDF si genera dalla pagina `#/riepilogo` con `webContents.printToPDF` di Elec
 ## Convenzioni
 - Codice e nomi in inglese, testi dell'interfaccia in italiano (i nomi delle collezioni PocketBase restano italiani).
 - Un servizio Angular per collezione, tipi TypeScript allineati alle collezioni (`models/models.ts`).
-- Router con `withHashLocation()`: la build è servita come file statici da PocketBase.
+- Router con `withHashLocation()`: la build Ã¨ servita come file statici da PocketBase.
 - Prima di implementare una nuova fase, proponi il piano e attendi conferma.
 
 ## Note operative
