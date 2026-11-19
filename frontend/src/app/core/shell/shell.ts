@@ -67,8 +67,8 @@ interface NavItem {
     .item:focus-visible { outline: 3px solid #2f6fb5; outline-offset: 1px; }
     .ico { position: relative; width: 56px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 16px; }
     mat-icon { width: 22px; height: 22px; font-size: 22px; }
-    .item.active { color: #0f3b6e; font-weight: 700; }
-    .item.active .ico { background: #e6f1fc; }
+    /* The whole active entry is highlighted, with a blue edge on the content side. */
+    .item.active { background: #e6f1fc; border-right: 3px solid #2f6fb5; color: #0f3b6e; font-weight: 700; }
     .new { margin-bottom: 6px; color: #0f2e52; font-weight: 600; padding-bottom: 10px; }
     .plus { width: 56px; height: 56px; border-radius: 18px; background: #2f6fb5; color: #fff; display: flex; align-items: center; justify-content: center; }
     .plus mat-icon { width: 26px; height: 26px; font-size: 26px; }
