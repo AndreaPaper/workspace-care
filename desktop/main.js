@@ -23,6 +23,7 @@ let pb = null;
 let win = null;
 let tray = null;
 let quitting = false;
+let stoppedOnPurpose = false;
 
 function startPocketBase() {
   fs.mkdirSync(dataDir, { recursive: true });
@@ -33,9 +34,11 @@ function startPocketBase() {
   );
   pb.stdout.on('data', (d) => process.stdout.write(d));
   pb.stderr.on('data', (d) => process.stderr.write(d));
+  stoppedOnPurpose = false;
   pb.on('exit', (code) => {
     pb = null;
-    if (!quitting && code !== 0) {
+    // A deliberate stop (e.g. during a backup) ends with a null exit code: not a crash.
+    if (!quitting && !stoppedOnPurpose && code !== 0) {
       dialog.showErrorBox('Workspace Care', `Il server locale si è fermato (codice ${code}).`);
       app.quit();
     }
@@ -45,6 +48,7 @@ function startPocketBase() {
 function stopPocketBase() {
   return new Promise((resolve) => {
     if (!pb) return resolve();
+    stoppedOnPurpose = true;
     pb.once('exit', () => resolve());
     pb.kill();
     setTimeout(resolve, 5000);
