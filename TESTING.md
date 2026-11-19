@@ -347,3 +347,12 @@ Inventario, Cassettiere e Aree sono ora tre schede di `#/ufficio`; i casi B e I 
 - PASS: Cassettiere con legenda (7 personali, 2 condivise, 2 libere), una scatola per area, "Senza area" in fondo; clic su un blocco apre la modifica.
 - PASS: nessun overflow orizzontale a 1440 e 375 px su tutte e tre le schede.
 - Non provato: creazione in blocco e modifica/elimina inventario dalla nuova grafica (codice invariato).
+
+## Aggiornamento del 19 novembre: Regole come bacheca
+
+- PASS: riquadri per tema, avviso con conteggi, filtro «Mostra solo queste» / «Mostra tutte» (URL `?da_sistemare=1`).
+- PASS: «Attiva» su una bozza, «Scrivi la bozza» (porta a bozza e apre il testo), modifica in linea e salvataggio.
+- PASS: nuova regola (Salva disattivato con testo vuoto, il riquadro del tema compare solo durante la creazione), eliminazione con conferma.
+- PASS: `?q=` dalla ricerca globale filtra le regole; «Togli il filtro».
+- PASS: «Cartello» mostra solo le regole attive del tema; disattivato se non ce ne sono; nessun overflow a 375 px.
+- Non provato: il file PDF del cartello dalla finestra reale (stesso meccanismo del riepilogo, già provato).

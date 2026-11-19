@@ -33,7 +33,7 @@ export class SearchService {
       ...requests.items.map((r): SearchHit => ({ type: 'Richieste', icon: 'inbox', title: r['titolo'], detail: r['richiedente'] || area(r), link: ['/richieste'], withQuery: false, params: { id: r.id } })),
       ...purchases.items.map((r): SearchHit => ({ type: 'Acquisti', icon: 'shopping_cart', title: r['articolo'], detail: r['fornitore'] || area(r), link: ['/acquisti'], withQuery: false, params: { id: r.id } })),
       ...items.items.map((r): SearchHit => ({ type: 'Inventario', icon: 'inventory_2', title: r['nome'], detail: r['posizione'] || area(r), link: ['/ufficio'], withQuery: false, params: { tab: 'inventario', q } })),
-      ...rules.items.map((r): SearchHit => ({ type: 'Regole', icon: 'menu_book', title: String(r['testo']).slice(0, 70), detail: r['tema'], link: ['/regole'], withQuery: false })),
+      ...rules.items.map((r): SearchHit => ({ type: 'Regole', icon: 'menu_book', title: String(r['testo']).slice(0, 70), detail: r['tema'], link: ['/regole'], withQuery: true })),
     ];
   }
 }

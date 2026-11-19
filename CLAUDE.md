@@ -56,7 +56,9 @@ Acquisti: fascia budget con speso / ordinato da pagare / stima ancora da decider
 
 **Ufficio** (`#/ufficio?tab=inventario|cassettiere|aree`, `pages/office`): un'unica voce di menu con tre schede e contatori; sostituisce le voci Inventario, Cassettiere e Aree (i vecchi indirizzi `#/inventario`, `#/cassettiere`, `#/aree` reindirizzano alla scheda giusta, conservando `?q=`). Cassettiere: legenda (personale / condivisa / libera), una scatola per area con blocchi numerati, clic su un blocco = modifica; «Libera» = senza `assegnata_a`. I componenti `Inventory`, `Drawers`, `Areas` emettono `changed` per aggiornare i contatori.
 
-Altre pagine: Dashboard, Regole, Riepilogo per la direzione (esporta PDF).
+**Regole** (`pages/rules`): bacheca con un riquadro per tema, senza dialog. Attive su fondo verde, bozze tratteggiate con «Attiva», da definire con «Scrivi la bozza»; clic sul testo = modifica in linea; avviso «N regole da sistemare» con filtro `?da_sistemare=1`. Il pulsante «Cartello» apre `#/regole/cartello?tema=…` (`rule-sign.ts`): le sole regole attive del tema in grande, esportabili in PDF come il riepilogo.
+
+Altre pagine: Dashboard, Riepilogo per la direzione (esporta PDF).
 Il PDF si genera dalla pagina `#/riepilogo` con `webContents.printToPDF` di Electron (stile `@media print`).
 
 ## Convenzioni
