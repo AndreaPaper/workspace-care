@@ -14,7 +14,7 @@ essere veloce da usare e richiedere poca manutenzione.
   Electron avvia `pocketbase.exe` su 127.0.0.1:8090, lo usa anche per servire la build Angular e resta nella tray.
 - Un solo utente, **nessuna schermata di login**: al primo avvio Electron crea un account interno con password casuale
   (`%APPDATA%\workspace-care\credentials.json`) e lo espone ad Angular tramite `desktop/preload.js`; l'API resta protetta.
-  Electron crea anche un superutente interno con password casuale ( in ): senza, PocketBase aprirebbe il browser sulla pagina di installazione a ogni avvio pulito. La pagina di login esiste solo come ripiego fuori da Electron (es. `ng serve` nel browser).
+  Electron crea anche un superutente interno con password casuale (`ensureSuperuser` in `desktop/main.js`): senza, PocketBase aprirebbe il browser sulla pagina di installazione a ogni avvio pulito. La pagina di login esiste solo come ripiego fuori da Electron (es. `ng serve` nel browser).
 - Interfaccia in italiano, responsive.
 
 ## Struttura del repository
