@@ -1,5 +1,13 @@
 ﻿@use '@angular/material' as mat;
 @use 'material-icons/iconfont/material-icons.css';
+// Fonts of the dashboard design, bundled so the app works offline.
+@use '@fontsource/inter/400.css' as inter-400;
+@use '@fontsource/inter/500.css' as inter-500;
+@use '@fontsource/inter/600.css' as inter-600;
+@use '@fontsource/inter/700.css' as inter-700;
+@use '@fontsource/plus-jakarta-sans/600.css' as jakarta-600;
+@use '@fontsource/plus-jakarta-sans/700.css' as jakarta-700;
+@use '@fontsource/plus-jakarta-sans/800.css' as jakarta-800;
 
 html {
   @include mat.theme(
@@ -13,8 +21,8 @@ html {
 
 body {
   margin: 0;
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  background: var(--mat-sys-surface);
+  font-family: Inter, 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: #f7f4ee;
   color: var(--mat-sys-on-surface);
 }
 
@@ -42,7 +50,8 @@ mat-form-field { min-width: 160px; }
 }
 
 @media print {
-  .no-print, .sidebar, .topbar { display: none !important; }
+  .no-print, .rail, app-global-search { display: none !important; }
+  app-shell .content { padding: 0 !important; }
   main { padding: 0 !important; }
   body { background: #fff; }
   .report { border: 0 !important; padding: 0 !important; max-width: none !important; }

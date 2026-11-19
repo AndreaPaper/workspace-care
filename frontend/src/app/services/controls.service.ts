@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { PocketBaseService } from '../core/pocketbase.service';
+import { BadgesService } from './badges.service';
 import { Check, CheckOutcome, CheckRun } from '../models/models';
 import { addDays, todayDay, toDay } from './dates';
 
@@ -8,6 +9,7 @@ export type CheckBucket = 'scaduti' | 'oggi' | 'settimana' | 'dopo';
 @Injectable({ providedIn: 'root' })
 export class ControlsService {
   private readonly pb = inject(PocketBaseService);
+  private readonly badges = inject(BadgesService);
   private readonly col = this.pb.client.collection('controlli');
   private readonly runs = this.pb.client.collection('esecuzioni_controllo');
 
@@ -16,20 +18,30 @@ export class ControlsService {
   }
 
   create(data: Partial<Check>): Promise<Check> {
-    return this.col.create<Check>(data, { expand: 'area' });
+    return this.col.create<Check>(data, { expand: 'area' }).finally(() => void this.badges.refresh());
   }
 
   update(id: string, data: Partial<Check>): Promise<Check> {
-    return this.col.update<Check>(id, data, { expand: 'area' });
+    return this.col.update<Check>(id, data, { expand: 'area' }).finally(() => void this.badges.refresh());
   }
 
   remove(id: string): Promise<boolean> {
-    return this.col.delete(id);
+    return this.col.delete(id).finally(() => void this.badges.refresh());
   }
 
   /** Server-side: records the execution and moves the due date forward. */
   markDone(id: string, esito: CheckOutcome = 'ok', note = ''): Promise<Check> {
-    return this.pb.client.send<Check>(`/api/controlli/${id}/fatto`, { method: 'POST', body: { esito, note } });
+    return this.pb.client
+      .send<Check>(`/api/controlli/${id}/fatto`, { method: 'POST', body: { esito, note } })
+      .finally(() => void this.badges.refresh());
+  }
+
+  /** Day of the latest execution of every check, by check id. */
+  async lastRuns(): Promise<Record<string, string>> {
+    const runs = await this.runs.getFullList<CheckRun>({ sort: '-data,-created', fields: 'controllo,data' });
+    const last: Record<string, string> = {};
+    for (const r of runs) if (!last[r.controllo]) last[r.controllo] = toDay(r.data);
+    return last;
   }
 
   history(id: string, limit = 5): Promise<CheckRun[]> {

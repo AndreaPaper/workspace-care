@@ -1,4 +1,6 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, DestroyRef, OnInit, signal } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
+import { watchPageParams } from '../../core/page-params';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -156,6 +158,9 @@ export class Inventory implements OnInit {
   private readonly service = inject(InventoryService);
   private readonly areasService = inject(AreasService);
   private readonly dialog = inject(MatDialog);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly items = signal<InventoryItem[]>([]);
   readonly areas = signal<Area[]>([]);
@@ -190,6 +195,7 @@ export class Inventory implements OnInit {
     const [items, areas] = await Promise.all([this.service.list(), this.areasService.list()]);
     this.items.set(items);
     this.areas.set(areas);
+    watchPageParams(this.route, this.router, this.destroyRef, { onSearch: (q) => { this.search.set(q); }, });
   }
 
   open(item?: InventoryItem): void {

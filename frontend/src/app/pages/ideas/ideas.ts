@@ -1,4 +1,5 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, DestroyRef, OnInit, signal } from '@angular/core';
+import { watchPageParams } from '../../core/page-params';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
@@ -124,6 +125,7 @@ export class Ideas implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly matDialog = inject(MatDialog);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly categories = IDEA_CATEGORIES;
   readonly statuses = IDEA_STATUSES;
@@ -161,10 +163,7 @@ export class Ideas implements OnInit {
     this.linkCovers.set(covers);
     this.areas.set(areas);
     this.ideas.set(ideas);
-    if (this.route.snapshot.queryParamMap.has('nuova')) {
-      this.router.navigate([], { queryParams: {}, replaceUrl: true });
-      this.openDialog();
-    }
+    watchPageParams(this.route, this.router, this.destroyRef, { onNew: () => this.openDialog(), onSearch: (q) => this.search.set(q) });
   }
 
   openDialog(): void {

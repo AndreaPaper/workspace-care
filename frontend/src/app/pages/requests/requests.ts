@@ -1,4 +1,6 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, DestroyRef, OnInit, signal } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
+import { watchPageParams } from '../../core/page-params';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
@@ -85,6 +87,9 @@ export class Requests implements OnInit {
   private readonly areasService = inject(AreasService);
   private readonly ideasService = inject(IdeasService);
   private readonly dialog = inject(MatDialog);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly columns = ['data', 'titolo', 'richiedente', 'area', 'stato'];
   readonly statuses = REQUEST_STATUSES;
@@ -116,6 +121,7 @@ export class Requests implements OnInit {
     this.requests.set(requests);
     this.areas.set(areas);
     this.ideas = ideas;
+    watchPageParams(this.route, this.router, this.destroyRef, { onNew: () => this.open(), onSearch: (q) => { this.search.set(q); this.statusFilter.set(''); }, });
   }
 
   day(value: string): string {

@@ -1,5 +1,7 @@
 import { CurrencyPipe } from '@angular/common';
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, DestroyRef, OnInit, signal } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
+import { watchPageParams } from '../../core/page-params';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -121,6 +123,9 @@ export class Purchases implements OnInit {
   private readonly areasService = inject(AreasService);
   private readonly ideasService = inject(IdeasService);
   private readonly dialog = inject(MatDialog);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly columns = ['articolo', 'area', 'fornitore', 'prezzo', 'stato', 'azioni'];
   readonly statuses = PURCHASE_STATUSES;
@@ -151,6 +156,7 @@ export class Purchases implements OnInit {
     this.purchases.set(purchases);
     this.areas.set(areas);
     this.ideas = ideas;
+    watchPageParams(this.route, this.router, this.destroyRef, { onNew: () => this.open(), onSearch: (q) => { this.search.set(q); }, });
   }
 
   private async reload(): Promise<void> {

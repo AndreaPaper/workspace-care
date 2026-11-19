@@ -1,4 +1,6 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, DestroyRef, OnInit, signal } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
+import { watchPageParams } from '../../core/page-params';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
@@ -71,6 +73,9 @@ export class Controls implements OnInit {
   private readonly controlsService = inject(ControlsService);
   private readonly areasService = inject(AreasService);
   private readonly dialog = inject(MatDialog);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly sections = SECTIONS;
   readonly checks = signal<Check[]>([]);
@@ -88,6 +93,7 @@ export class Controls implements OnInit {
     const [checks, areas] = await Promise.all([this.controlsService.list(), this.areasService.list()]);
     this.checks.set(checks);
     this.areas.set(areas);
+    watchPageParams(this.route, this.router, this.destroyRef, { onNew: () => this.edit(), });
   }
 
   day(value: string): string {
