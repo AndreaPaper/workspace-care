@@ -8,6 +8,12 @@ declare global {
       getCredentials(): Promise<{ email: string; password: string }>;
       /** Opens a save dialog and writes the current page as a PDF. Resolves to the saved path, or null if cancelled. */
       exportPdf?(suggestedName: string): Promise<string | null>;
+      /** In-app updates (see services/update.service.ts). */
+      getUpdateState?(): Promise<{ status: 'idle' | 'checking' | 'none' | 'available' | 'downloading' | 'ready' | 'error'; version: string; percent: number; message: string }>;
+      checkForUpdates?(): Promise<void>;
+      downloadUpdate?(): Promise<void>;
+      installUpdate?(): Promise<void>;
+      onUpdateState?(callback: (state: { status: 'idle' | 'checking' | 'none' | 'available' | 'downloading' | 'ready' | 'error'; version: string; percent: number; message: string }) => void): () => void;
     };
   }
 }

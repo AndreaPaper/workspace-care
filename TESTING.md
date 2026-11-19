@@ -392,3 +392,13 @@ Inventario, Cassettiere e Aree sono ora tre schede di `#/ufficio`; i casi B e I 
 - PASS: dettaglio area (`#/ufficio/aree/:id`): etichette con numeri, cassettiere dell'area con assegnazione di un cassetto, riga dei cassetti liberi, regole, idee aperte, richieste con «Prendi in carico» e «Fatta», rinomina, «Aggiungi qui → Idea» con area preimpostata.
 - PASS: nessun overflow e nessun errore Angular in console a 375 px, sia nella scheda sia nel dettaglio.
 - Non provato: «Aggiungi qui» per Oggetto e Cassettiera (stesso meccanismo, parametro `area` letto dalle rispettive pagine), area inesistente nel dettaglio (messaggio nel codice, non visto a schermo).
+
+## Aggiornamento del 19 novembre: aggiornamenti dall'app
+
+Provati con l'app installata (0.1.0) e una 0.1.1 offerta da un server locale (`WC_UPDATE_FEED`), non da GitHub:
+
+- PASS: dopo l'avvio compare l'avviso «È disponibile la versione 0.1.1»; «Più tardi» lo nasconde, ricaricando torna.
+- PASS: «Aggiorna ora» scarica con la percentuale (17 → 95 %), poi compare «La versione 0.1.1 è pronta» e «Riavvia e installa».
+- PASS: «Riavvia e installa» ferma il server, installa e riavvia da solo: versione 0.1.1, un solo PocketBase, server sano, stesso account (nessun nuovo setup), una sola voce di avvio automatico.
+- PASS: il nome del file dell'installer coincide con quello scritto in `latest.yml` (con il nome predefinito, spazi contro trattini, l'aggiornamento avrebbe dato errore 404).
+- Non provato: il percorso reale tramite una release GitHub (il repository non esiste ancora), il banner con un errore di download, la voce «Controlla aggiornamenti» della tray, l'aggiornamento differenziale (il server di prova non supporta le richieste a intervalli: ha scaricato il file intero).

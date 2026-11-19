@@ -11,6 +11,7 @@ essere veloce da usare e richiedere poca manutenzione.
   dalla v22 richiede una licenza PrimeUI). Icone con il pacchetto `material-icons`; font Inter e Plus Jakarta Sans da `@fontsource` (nessun font da rete).
 - Backend: PocketBase (SQLite, API REST). Logica lato server con hook JavaScript in `backend/pb_hooks/`.
 - Distribuzione: **app Windows locale con Electron** (`desktop/`). Gratis, sempre disponibile, nessun hosting.
+- Aggiornamenti: `electron-updater` con le release di GitHub (`build.publish` in `desktop/package.json`, repository `AndreaPaper/workspace-care`). L'app controlla all'avvio e ogni 6 ore; un avviso in cima alle pagine (`core/ui/update-banner.ts`, `services/update.service.ts`) propone «Aggiorna ora» → scarico con avanzamento → «Riavvia e installa». Il main process (`desktop/main.js`) ferma PocketBase prima di installare. `WC_UPDATE_FEED` (cartella servita via http) sostituisce l'origine, solo per i test. Il file dell'installer si chiama `Workspace-Care-Setup-<versione>.exe` (deve coincidere con `latest.yml`).
   Electron avvia `pocketbase.exe` su 127.0.0.1:8090, lo usa anche per servire la build Angular e resta nella tray.
 - Un solo utente, **nessuna schermata di login**: al primo avvio Electron crea un account interno con password casuale
   (`%APPDATA%\workspace-care\credentials.json`) e lo espone ad Angular tramite `desktop/preload.js`; l'API resta protetta.

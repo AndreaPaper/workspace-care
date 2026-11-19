@@ -39,10 +39,23 @@
     ],
     "win": {
       "icon": "icon.png"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "AndreaPaper",
+        "repo": "workspace-care"
+      }
+    ],
+    "nsis": {
+      "artifactName": "Workspace-Care-Setup-${version}.exe"
     }
   },
   "devDependencies": {
     "electron": "^45.3.4",
     "electron-builder": "^26.18.0"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.11"
   }
 }

@@ -24,6 +24,16 @@ cd ../desktop; npm run dist                # desktop/out/Workspace Care Setup <v
 ```
 L'installer non è firmato: Windows SmartScreen chiede conferma al primo avvio.
 
+## Pubblicare un aggiornamento
+
+L'app installata controlla le release del repository GitHub `AndreaPaper/workspace-care` (vedi `build.publish` in `desktop/package.json`). Per rilasciare una nuova versione:
+
+1. Alza `version` in `desktop/package.json` (es. `0.1.1`).
+2. `ng build` in `frontend/`, poi `npm run dist` in `desktop/`: produce in `desktop/out/` `Workspace-Care-Setup-<versione>.exe`, il suo `.blockmap` e `latest.yml`.
+3. Crea una release con il tag `v<versione>` e allega **tutti e tre** i file, per esempio con `gh release create v0.1.1 desktop/out/Workspace-Care-Setup-0.1.1.exe desktop/out/Workspace-Care-Setup-0.1.1.exe.blockmap desktop/out/latest.yml --title "0.1.1"`.
+
+Chi ha l'app aperta vede l'avviso entro poche ore (o subito da «Controlla aggiornamenti» nella tray). Il repository deve essere pubblico, oppure l'app deve avere un token di lettura. Senza firma del codice Windows può mostrare «editore sconosciuto». La versione 0.1.0 va reinstallata a mano una volta; da lì in poi gli aggiornamenti arrivano dall'app.
+
 ## Dove sono i dati dell'app installata
 `%APPDATA%\Workspace Care\pb_data` (database SQLite e immagini). Dal menu della tray, **Esporta backup…** copia
 la cartella dove vuoi. L'app parte con Windows e controlla le scadenze all'avvio e ogni giorno dalle 9:00.

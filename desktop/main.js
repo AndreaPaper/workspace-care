@@ -25,6 +25,58 @@ let tray = null;
 let quitting = false;
 let stoppedOnPurpose = false;
 
+// --- Updates -----------------------------------------------------------------------------------
+// New versions are published as GitHub releases (see build.publish in package.json). The app checks at startup
+// and every few hours; the Angular app shows the banner and drives the steps through IPC:
+// available -> download (progress) -> ready -> restart and install. WC_UPDATE_FEED (a folder served over http)
+// overrides the source, for tests.
+const UPDATE_CHECK_MS = 6 * 60 * 60 * 1000;
+let autoUpdater = null;
+let updateState = { status: 'idle', version: '', percent: 0, message: '' };
+
+function setUpdateState(patch) {
+  updateState = { ...updateState, ...patch };
+  if (win && !win.isDestroyed()) win.webContents.send('update-state', updateState);
+}
+
+function setupUpdater() {
+  const feed = process.env.WC_UPDATE_FEED;
+  if (isDev && !feed) return;
+  ({ autoUpdater } = require('electron-updater'));
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = true;
+  if (feed) autoUpdater.setFeedURL({ provider: 'generic', url: feed });
+  autoUpdater.on('checking-for-update', () => setUpdateState({ status: 'checking', message: '' }));
+  autoUpdater.on('update-available', (info) => setUpdateState({ status: 'available', version: info.version, percent: 0 }));
+  autoUpdater.on('update-not-available', () => setUpdateState({ status: 'none' }));
+  autoUpdater.on('download-progress', (p) => setUpdateState({ status: 'downloading', percent: Math.round(p.percent) }));
+  autoUpdater.on('update-downloaded', (info) => setUpdateState({ status: 'ready', version: info.version, percent: 100 }));
+  autoUpdater.on('error', (err) => {
+    console.error('Update error:', err && err.message);
+    // A failed check is silent (no network, no release yet); a failed download is shown.
+    setUpdateState(updateState.status === 'downloading' ? { status: 'error', message: 'Aggiornamento non riuscito. Riprova più tardi.' } : { status: 'idle' });
+  });
+}
+
+function checkForUpdates() {
+  if (!autoUpdater || ['checking', 'downloading', 'ready'].includes(updateState.status)) return;
+  autoUpdater.checkForUpdates().catch(() => {});
+}
+
+ipcMain.handle('update-state', () => updateState);
+ipcMain.handle('update-check', () => checkForUpdates());
+ipcMain.handle('update-download', () => {
+  if (autoUpdater && updateState.status === 'available') autoUpdater.downloadUpdate().catch(() => {});
+});
+ipcMain.handle('update-install', async () => {
+  if (!autoUpdater || updateState.status !== 'ready') return;
+  // The local server is stopped first, then the installer replaces the app and starts it again.
+  quitting = true;
+  await stopPocketBase();
+  autoUpdater.quitAndInstall(true, true);
+});
+
+
 /**
  * Without any superuser PocketBase opens the browser on its "create your first superuser" page at every start.
  * An internal superuser with a random password nobody keeps stops that (the dashboard is not used; a new password
@@ -249,6 +301,7 @@ function createTray() {
       { label: 'Apri Workspace Care', click: showWindow },
       { label: 'Controlla scadenze ora', click: () => checkReminders({ force: true }) },
       { label: 'Esporta backup…', click: exportBackup },
+      { label: 'Controlla aggiornamenti', click: () => { showWindow(); checkForUpdates(); } },
       { type: 'separator' },
       { label: 'Esci', click: () => app.quit() },
     ]),
@@ -275,6 +328,9 @@ if (!app.requestSingleInstanceLock()) {
     }
     createTray();
     createWindow();
+    setupUpdater();
+    setTimeout(checkForUpdates, 20 * 1000);
+    setInterval(checkForUpdates, UPDATE_CHECK_MS);
     // Startup reminder (any hour), then a check every 30 minutes for the daily 09:00 one.
     checkReminders({ force: true });
     setInterval(checkReminders, 30 * 60 * 1000);
