@@ -88,6 +88,7 @@ const PERIODS = [
         <section>
           <h2>Acquisti</h2>
           @if (purchases().length) {
+            <div class="scroll">
             <table>
               <thead>
                 <tr><th>Articolo</th><th>Area</th><th>Stato</th><th>Fornitore</th>@if (show.costs()) { <th class="num">Importo</th> }</tr>
@@ -109,6 +110,7 @@ const PERIODS = [
                 }
               </tbody>
             </table>
+            </div>
             @if (show.costs()) {
               <p class="totals">
                 Stimato {{ totals().estimateMin | currency: 'EUR' : 'symbol' : '1.0-0' }}–{{ totals().estimateMax | currency: 'EUR' : 'symbol' : '1.0-0' }}
@@ -149,7 +151,7 @@ const PERIODS = [
           @if (requestsOpen().length) {
             <ul>
               @for (r of requestsOpen(); track r.id) {
-                <li>{{ r.titolo }} <span class="muted">({{ r.richiedente }}, {{ label(requestStatuses, r.stato).toLowerCase() }})</span></li>
+                <li>{{ r.titolo }} <span class="muted">({{ r.richiedente ? r.richiedente + ', ' : '' }}{{ label(requestStatuses, r.stato).toLowerCase() }})</span></li>
               }
             </ul>
           }
@@ -171,11 +173,15 @@ const PERIODS = [
     .report { max-width: 860px; background: #fff; color: #111; padding: 1.5rem 2rem; border: 1px solid var(--mat-sys-outline-variant); border-radius: 8px; }
     .report h1 { font-size: 1.5rem; margin: 0; }
     .report h2 { font-size: 1.15rem; margin: 1.5rem 0 .5rem; border-bottom: 2px solid #4f46e5; padding-bottom: .2rem; }
-    section { break-inside: avoid-page; }
+    /* A section can be longer than a page: only keep a heading with the content that follows it. */
+    .report h2, .report h3 { break-after: avoid; }
+    .report tr { break-inside: avoid; }
     .idea { display: flex; gap: .75rem; margin-bottom: .75rem; break-inside: avoid; }
     .thumb { flex: 0 0 96px; height: 72px; border-radius: 6px; background: #f1f5f9 center/cover no-repeat; }
     .meta { color: #475569; font-size: .9rem; }
     .desc { font-size: .9rem; }
+    /* On a phone the purchases table scrolls inside the report instead of widening the whole page. */
+    .scroll { overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; font-size: .9rem; }
     th, td { text-align: left; padding: .3rem .4rem; border-bottom: 1px solid #e2e8f0; }
     .num { text-align: right; white-space: nowrap; }
