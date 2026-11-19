@@ -12,6 +12,7 @@ import { Area, Idea, PURCHASE_STATUSES, Purchase, PurchaseStatus, labelOf } from
 import { AreasService } from '../../services/areas.service';
 import { shortDay, toDay, todayDay, toStored } from '../../services/dates';
 import { IdeasService } from '../../services/ideas.service';
+import { BudgetService } from '../../services/budget.service';
 import { PurchasesService } from '../../services/purchases.service';
 
 type Tab = 'incorso' | 'montati' | 'tutti';
@@ -62,11 +63,22 @@ import { ConfirmService } from '../../services/confirm.service';
       <div><span>Speso</span><strong>{{ eur(totals().received) }}</strong></div>
       <div><span>Già ordinato, da pagare</span><strong>{{ eur(totals().ordered) }}</strong></div>
       <div><span>Ancora da decidere (stima)</span><strong>{{ undecided() }}</strong></div>
-      <div class="bar" role="img" aria-label="Speso, ordinato e stimato a confronto">
-        <i class="spent" [style.flex]="totals().received || 0"></i>
-        <i class="ordered" [style.flex]="totals().ordered || 0"></i>
-        <i class="undecided" [style.flex]="totals().undecidedMax || 0"></i>
-      </div>
+      @if (bv(); as b) {
+        <div><span>Budget dell'anno</span><strong>{{ eur(b.annual) }}</strong></div>
+        <div><span>{{ b.left < 0 ? 'Oltre il budget' : 'Ancora disponibile' }}</span><strong [class.over]="b.left < 0">{{ eur(b.left < 0 ? -b.left : b.left) }}</strong></div>
+        <div class="bar" role="img" [attr.aria-label]="'Speso, ordinato e stimato a confronto con il budget annuale di ' + eur(b.annual)">
+          <i class="spent" [style.flex]="b.spent"></i>
+          <i class="ordered" [style.flex]="b.ordered"></i>
+          <i class="undecided" [style.flex]="b.undecided"></i>
+          <i class="free" [style.flex]="b.annual - b.spent - b.ordered - b.undecided > 0 ? b.annual - b.spent - b.ordered - b.undecided : 0"></i>
+        </div>
+      } @else {
+        <div class="bar" role="img" aria-label="Speso, ordinato e stimato a confronto">
+          <i class="spent" [style.flex]="totals().received || 0"></i>
+          <i class="ordered" [style.flex]="totals().ordered || 0"></i>
+          <i class="undecided" [style.flex]="totals().undecidedMax || 0"></i>
+        </div>
+      }
     </section>
 
     <app-master-detail listLabel="Elenco acquisti" detailLabel="Dettaglio acquisto">
@@ -198,6 +210,8 @@ import { ConfirmService } from '../../services/confirm.service';
     .budget strong { font: 700 24px 'Plus Jakarta Sans', Inter, sans-serif; }
     .bar { flex: 1 1 260px; display: flex; height: 12px; border-radius: 999px; overflow: hidden; gap: 2px; }
     .bar i { display: block; min-width: 0; }
+    .bar .free { background: #f0ede5; }
+    .budget .over { color: #b42318; }
     .bar .spent { background: #2e6a4f; }
     .bar .ordered { background: #6fb08c; }
     .bar .undecided { background: repeating-linear-gradient(135deg, #dcebe2 0 6px, #edf5f0 6px 12px); }
@@ -225,6 +239,9 @@ export class Purchases implements OnInit {
   readonly statuses = PURCHASE_STATUSES;
   readonly steps = PURCHASE_STATUSES;
   readonly eur = eur;
+  private readonly budgetService = inject(BudgetService);
+  /** The comparison with the annual budget (null when none is set). */
+  readonly bv = computed(() => this.budgetService.view(this.purchases()));
 
   readonly purchases = signal<Purchase[]>([]);
   readonly areas = signal<Area[]>([]);
@@ -275,6 +292,7 @@ export class Purchases implements OnInit {
   }
 
   async ngOnInit(): Promise<void> {
+    void this.budgetService.load();
     const [purchases, areas, ideas] = await Promise.all([
       this.purchasesService.list(),
       this.areasService.list(),

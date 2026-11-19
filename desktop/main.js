@@ -39,6 +39,14 @@ const DEFAULT_SETTINGS = {
   backupFolder: '',
   autoUpdateCheck: true,
   userName: '',
+  remindDayBefore: false,
+  staleRequestsEnabled: false,
+  staleRequestsDays: 7,
+  autoBackup: false,
+  autoBackupDay: 5, // 0 = Sunday ... 6 = Saturday
+  autoBackupHour: 17,
+  autoBackupKeep: 8,
+  autoBackupFrom: 0, // when the automatic backup was switched on (ms): the first one is due at the next slot
 };
 
 function loadSettings() {
@@ -76,6 +84,11 @@ function saveSettings(patch) {
   }
   next.reminderHour = Math.min(23, Math.max(0, Math.round(next.reminderHour)));
   next.userName = next.userName.trim().slice(0, 40);
+  next.staleRequestsDays = Math.min(60, Math.max(1, Math.round(next.staleRequestsDays)));
+  next.autoBackupDay = Math.min(6, Math.max(0, Math.round(next.autoBackupDay)));
+  next.autoBackupHour = Math.min(23, Math.max(0, Math.round(next.autoBackupHour)));
+  next.autoBackupKeep = Math.min(52, Math.max(1, Math.round(next.autoBackupKeep)));
+  if (next.autoBackup && !settings.autoBackup) next.autoBackupFrom = Date.now();
   settings = next;
   fs.mkdirSync(path.dirname(settingsFile), { recursive: true });
   fs.writeFileSync(settingsFile, JSON.stringify(settings, null, 2));
@@ -92,19 +105,27 @@ function dirSize(p) {
   return total;
 }
 
+const BACKUP_PREFIX = 'workspace-care-backup-';
+const KIND_PREFIX = { manual: BACKUP_PREFIX, auto: BACKUP_PREFIX + 'auto-', sicurezza: BACKUP_PREFIX + 'sicurezza-' };
+
+function backupKind(name) {
+  return name.startsWith(KIND_PREFIX.auto) ? 'auto' : name.startsWith(KIND_PREFIX.sicurezza) ? 'sicurezza' : 'manual';
+}
+
 /** The backups found in the backup folder, newest first. */
-function listBackups() {
+function listBackups(limit = 30) {
   const dir = backupFolderPath();
   try {
     return fs
       .readdirSync(dir, { withFileTypes: true })
-      .filter((d) => d.isDirectory() && d.name.startsWith('workspace-care-backup-'))
+      .filter((d) => d.isDirectory() && d.name.startsWith(BACKUP_PREFIX))
       .map((d) => {
         const full = path.join(dir, d.name);
-        return { name: d.name, path: full, when: fs.statSync(full).mtimeMs, size: dirSize(full) };
+        return { name: d.name, path: full, kind: backupKind(d.name), when: fs.statSync(full).mtimeMs };
       })
       .sort((a, b) => b.when - a.when)
-      .slice(0, 30);
+      .slice(0, limit)
+      .map((b) => ({ ...b, size: dirSize(b.path) }));
   } catch {
     return [];
   }
@@ -215,8 +236,10 @@ ipcMain.handle('update-install', async () => {
  * An internal superuser with a random password nobody keeps stops that (the dashboard is not used; a new password
  * can be set with `pocketbase superuser upsert` if it is ever needed).
  */
+let superPassword = '';
 function ensureSuperuser() {
   const password = crypto.randomBytes(24).toString('hex');
+  superPassword = password;
   spawnSync(pbExe, ['superuser', 'upsert', 'admin@workspace-care.local', password, `--dir=${dataDir}`, `--migrationsDir=${migrationsDir}`], {
     windowsHide: true,
     timeout: 30000,
@@ -313,7 +336,26 @@ function requestJson(method, urlPath, body, token) {
 async function ensureAccount() {
   const creds = loadCredentials();
   const { needed } = await requestJson('GET', '/api/setup');
-  if (needed) await requestJson('POST', '/api/setup', creds);
+  if (needed) {
+    await requestJson('POST', '/api/setup', creds);
+    return;
+  }
+  // The data may come from a backup made on another PC, where the internal account had another password.
+  try {
+    await requestJson('POST', '/api/collections/users/auth-with-password', { identity: creds.email, password: creds.password });
+  } catch {
+    await repairAccount(creds);
+  }
+}
+
+/** Sets the internal account (email and password of credentials.json) again, using the session's superuser. */
+async function repairAccount(creds) {
+  const su = await requestJson('POST', '/api/collections/_superusers/auth-with-password', { identity: 'admin@workspace-care.local', password: superPassword });
+  const list = await requestJson('GET', '/api/collections/users/records?perPage=50', null, su.token);
+  const owner = list.items.find((u) => u.email === creds.email) || list.items[0];
+  const body = { email: creds.email, password: creds.password, passwordConfirm: creds.password };
+  if (owner) await requestJson('PATCH', `/api/collections/users/records/${owner.id}`, body, su.token);
+  else await requestJson('POST', '/api/collections/users/records', body, su.token);
 }
 
 ipcMain.handle('credentials', () => loadCredentials());
@@ -342,17 +384,55 @@ function localDay(d = new Date()) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-async function countDueChecks() {
+/** The lines of the daily notification (empty when there is nothing to say). */
+function reminderLines({ total, overdue, tomorrow, stale }, prefs) {
+  const lines = [];
+  if (total) {
+    lines.push(
+      overdue
+        ? `${total} controlli da fare oggi o in ritardo (${overdue} scaduti).`
+        : total === 1
+          ? '1 controllo da fare oggi.'
+          : `${total} controlli da fare oggi.`,
+    );
+  }
+  if (prefs.remindDayBefore && tomorrow) lines.push(tomorrow === 1 ? 'Domani: 1 controllo.' : `Domani: ${tomorrow} controlli.`);
+  if (prefs.staleRequestsEnabled && stale) {
+    lines.push(stale === 1 ? `1 richiesta ferma da più di ${prefs.staleRequestsDays} giorni.` : `${stale} richieste ferme da più di ${prefs.staleRequestsDays} giorni.`);
+  }
+  return lines;
+}
+
+function dayOffset(days) {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return localDay(d);
+}
+
+async function countReminders() {
   const creds = loadCredentials();
   const auth = await requestJson('POST', '/api/collections/users/auth-with-password', {
     identity: creds.email,
     password: creds.password,
   });
-  const filter = encodeURIComponent(`prossima_scadenza <= "${localDay()} 23:59:59.999Z"`);
-  const res = await requestJson('GET', `/api/collections/controlli/records?perPage=200&filter=${filter}`, null, auth.token);
+  const get = (collection, filter) =>
+    requestJson('GET', `/api/collections/${collection}/records?perPage=200&filter=${encodeURIComponent(filter)}`, null, auth.token);
   const today = localDay();
-  const overdue = res.items.filter((c) => String(c.prossima_scadenza).slice(0, 10) < today).length;
-  return { total: res.totalItems, overdue };
+  const checks = await get('controlli', `prossima_scadenza <= "${today} 23:59:59.999Z"`);
+  const overdue = checks.items.filter((c) => String(c.prossima_scadenza).slice(0, 10) < today).length;
+  let tomorrow = 0;
+  if (settings.remindDayBefore) {
+    const t = dayOffset(1);
+    tomorrow = (await get('controlli', `prossima_scadenza >= "${t} 00:00:00.000Z" && prossima_scadenza <= "${t} 23:59:59.999Z"`)).totalItems;
+  }
+  let stale = 0;
+  if (settings.staleRequestsEnabled) {
+    const limit = dayOffset(-settings.staleRequestsDays);
+    stale = (
+      await get('richieste', `(stato = "ricevuta" || stato = "in_valutazione" || stato = "in_corso") && updated < "${limit} 00:00:00.000Z"`)
+    ).totalItems;
+  }
+  return { total: checks.totalItems, overdue, tomorrow, stale };
 }
 
 async function checkReminders({ force = false, manual = false } = {}) {
@@ -361,21 +441,15 @@ async function checkReminders({ force = false, manual = false } = {}) {
   const day = localDay(now);
   if (!force && (lastReminderDay === day || now.getHours() < settings.reminderHour)) return;
   try {
-    const { total, overdue } = await countDueChecks();
+    const counts = await countReminders();
     lastReminderDay = day;
-    console.log(`Reminder check: ${total} due, ${overdue} overdue`);
-    if (!total || !Notification.isSupported()) return;
-    const n = new Notification({
-      title: 'Workspace Care',
-      body: overdue
-        ? `${total} controlli da fare oggi o in ritardo (${overdue} scaduti).`
-        : total === 1
-          ? '1 controllo da fare oggi.'
-          : `${total} controlli da fare oggi.`,
-    });
+    console.log(`Reminder check: ${counts.total} due, ${counts.overdue} overdue, ${counts.tomorrow} tomorrow, ${counts.stale} stale`);
+    const lines = reminderLines(counts, settings);
+    if (!lines.length || !Notification.isSupported()) return;
+    const n = new Notification({ title: 'Workspace Care', body: lines.join('\n') });
     n.on('click', () => {
       showWindow();
-      win.loadURL(`${BASE_URL}/#/controlli`);
+      win.loadURL(`${BASE_URL}/#/${counts.total || counts.tomorrow ? 'controlli' : 'richieste'}`);
     });
     n.show();
   } catch (err) {
@@ -412,7 +486,21 @@ function showWindow() {
 
 let backupRunning = false;
 
-async function exportBackup(folder, choose = false) {
+function backupStamp(d = new Date()) {
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${localDay(d)}_${pad(d.getHours())}${pad(d.getMinutes())}`;
+}
+
+/** Reloads the window after the server restarted, so that it starts from a clean state. */
+async function reloadWindow() {
+  if (win && !win.isDestroyed()) await win.loadURL(BASE_URL).catch(() => {});
+}
+
+/**
+ * Copies the data folder into the backup folder (the server is stopped meanwhile, so that the SQLite files are
+ * consistent). kind: manual | auto. An automatic backup on a hidden window stays silent unless it fails.
+ */
+async function exportBackup(folder, choose = false, kind = 'manual') {
   if (backupRunning) return;
   let target = folder || backupFolderPath();
   if (choose) {
@@ -420,28 +508,121 @@ async function exportBackup(folder, choose = false) {
     if (res.canceled) return;
     target = res.filePaths[0];
   }
-  const d = new Date();
-  const pad = (n) => String(n).padStart(2, '0');
-  const stamp = `${localDay(d)}_${pad(d.getHours())}${pad(d.getMinutes())}`;
-  const dest = path.join(target, `workspace-care-backup-${stamp}`);
+  const dest = path.join(target, `${KIND_PREFIX[kind]}${backupStamp()}`);
+  const visible = !!(win && !win.isDestroyed() && win.isVisible());
   backupRunning = true;
-  // Stop the server so the SQLite files are copied in a consistent state.
   await stopPocketBase();
   let outcome;
   try {
     fs.mkdirSync(target, { recursive: true });
     fs.cpSync(dataDir, dest, { recursive: true });
-    outcome = { kind: 'success', title: 'Backup completato', text: dest, path: dest };
+    if (kind === 'auto') pruneAutoBackups();
+    outcome = { kind: 'success', title: kind === 'auto' ? 'Backup automatico completato' : 'Backup completato', text: dest, path: dest };
   } catch (err) {
-    outcome = { kind: 'error', title: 'Backup non riuscito', text: String((err && err.message) || err), folder: target };
+    outcome = { kind: 'error', title: kind === 'auto' ? 'Backup automatico non riuscito' : 'Backup non riuscito', text: String((err && err.message) || err), folder: target };
   } finally {
     startPocketBase();
     await waitForServer();
     // The window is reloaded first, then the message is queued: a message sent before the reload would be lost with the old page.
-    if (win) await win.loadURL(BASE_URL).catch(() => {});
+    if (kind !== 'auto' || visible) await reloadWindow();
+    backupRunning = false;
+  }
+  if (kind !== 'auto' || visible) sendToast(outcome);
+  else if (outcome.kind === 'error' && Notification.isSupported()) new Notification({ title: 'Workspace Care', body: outcome.title + '. ' + outcome.text }).show();
+}
+
+// --- Restore ------------------------------------------------------------------------------
+function isBackupFolder(p) {
+  try {
+    return typeof p === 'string' && fs.statSync(path.join(p, 'data.db')).isFile();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Replaces all the data with a backup. First a safety copy of the current data is made; the current data are only
+ * deleted after the backup has been copied in, so that an error half way leaves everything as it was.
+ */
+async function restoreBackup(source) {
+  if (backupRunning) return { ok: false, message: "C'è già un backup in corso." };
+  if (!isBackupFolder(source)) return { ok: false, message: 'La cartella scelta non è un backup di Workspace Care.' };
+  backupRunning = true;
+  await stopPocketBase();
+  const safety = path.join(backupFolderPath(), `${KIND_PREFIX.sicurezza}${backupStamp()}`);
+  const old = dataDir + '.prima-del-ripristino';
+  let outcome;
+  try {
+    fs.mkdirSync(backupFolderPath(), { recursive: true });
+    fs.cpSync(dataDir, safety, { recursive: true });
+    fs.rmSync(old, { recursive: true, force: true });
+    fs.renameSync(dataDir, old);
+    try {
+      fs.cpSync(source, dataDir, { recursive: true });
+    } catch (err) {
+      fs.rmSync(dataDir, { recursive: true, force: true });
+      fs.renameSync(old, dataDir);
+      throw err;
+    }
+    fs.rmSync(old, { recursive: true, force: true });
+    outcome = { kind: 'success', title: 'Dati ripristinati', text: 'Copia di sicurezza dei dati di prima: ' + safety, path: safety };
+  } catch (err) {
+    outcome = { kind: 'error', title: 'Ripristino non riuscito', text: String((err && err.message) || err) + ' I dati sono rimasti come prima.' };
+  } finally {
+    startPocketBase();
+    try {
+      await waitForServer();
+      await ensureAccount();
+    } catch (err) {
+      outcome = { kind: 'error', title: 'Il server non riparte', text: String((err && err.message) || err) };
+    }
+    await reloadWindow();
     backupRunning = false;
   }
   sendToast(outcome);
+  return { ok: outcome.kind === 'success' };
+}
+
+ipcMain.handle('backup-restore', (_event, source) => restoreBackup(source));
+ipcMain.handle('backup-choose-restore', async (event) => {
+  const res = await dialog.showOpenDialog(BrowserWindow.fromWebContents(event.sender), {
+    title: 'Scegli la cartella del backup da ripristinare',
+    defaultPath: backupFolderPath(),
+    properties: ['openDirectory'],
+  });
+  if (res.canceled) return null;
+  return isBackupFolder(res.filePaths[0]) ? { path: res.filePaths[0] } : { error: 'La cartella scelta non è un backup di Workspace Care.' };
+});
+
+// --- Automatic backup ---------------------------------------------------------------------
+/** Keeps the newest `autoBackupKeep` automatic backups; manual and safety copies are never deleted. */
+function pruneAutoBackups() {
+  const autos = listBackups(1000).filter((b) => b.kind === 'auto');
+  for (const old of autos.slice(settings.autoBackupKeep)) {
+    try { fs.rmSync(old.path, { recursive: true, force: true }); } catch { /* it stays for the next time */ }
+  }
+}
+
+/** The most recent scheduled moment (day of the week and hour) that is not in the future. */
+function lastScheduledSlot(now, day, hour) {
+  const slot = new Date(now);
+  slot.setDate(now.getDate() - ((now.getDay() - day + 7) % 7));
+  slot.setHours(hour, 0, 0, 0);
+  if (slot > now) slot.setDate(slot.getDate() - 7);
+  return slot;
+}
+
+/** Due when the last scheduled moment is later than the last automatic backup (or than when it was switched on). */
+function autoBackupDue(now, lastAutoMs, prefs) {
+  if (!prefs.autoBackup) return false;
+  const baseline = Math.max(lastAutoMs, prefs.autoBackupFrom || 0);
+  return lastScheduledSlot(now, prefs.autoBackupDay, prefs.autoBackupHour).getTime() > baseline;
+}
+
+async function checkAutoBackup() {
+  if (!settings.autoBackup || backupRunning) return;
+  const last = listBackups(1000).find((b) => b.kind === 'auto');
+  if (autoBackupDue(new Date(), last ? last.when : 0, settings)) await exportBackup(undefined, false, 'auto');
 }
 
 function createTray() {
@@ -485,6 +666,9 @@ if (!app.requestSingleInstanceLock()) {
     // Startup reminder (any hour), then a check every 30 minutes for the daily 09:00 one.
     checkReminders({ force: true });
     setInterval(checkReminders, 30 * 60 * 1000);
+    // Automatic backup: first look a minute after the start (the PC may have been off at the scheduled time), then every 10 minutes.
+    setTimeout(checkAutoBackup, 60 * 1000);
+    setInterval(checkAutoBackup, 10 * 60 * 1000);
   });
 
   app.on('before-quit', (e) => {

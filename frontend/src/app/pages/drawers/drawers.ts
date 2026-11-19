@@ -67,7 +67,7 @@ import { ConfirmService } from '../../services/confirm.service';
                   }
                 </div>
                 @if (dd.tipo === 'personale') {
-                  <label>A chi<input name="chi" [(ngModel)]="dd.assegnato_a" placeholder="Nome della persona" /></label>
+                  <label>A chi<input name="chi" list="people-list" autocomplete="off" [(ngModel)]="dd.assegnato_a" placeholder="Nome della persona" /></label>
                   <label class="check"><input type="checkbox" name="tutta" [(ngModel)]="dd.tutta" /> Assegna tutta la cassettiera a questa persona</label>
                 }
                 @if (dd.tipo === 'condiviso') {

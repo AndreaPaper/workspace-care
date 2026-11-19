@@ -4,6 +4,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
 import { BadgesService } from '../../services/badges.service';
+import { PeopleService } from '../../services/people.service';
 import { SettingsService } from '../../services/settings.service';
 import { GlobalSearch } from '../search/global-search';
 import { ToastHost } from '../ui/toast-host';
@@ -72,6 +73,7 @@ interface NavItem {
       <app-global-search />
       <main><router-outlet /></main>
       <app-toast-host />
+      <datalist id="people-list">@for (p of people.people(); track p.id) { <option [value]="p.nome"></option> }</datalist>
     </div>
   `,
   styles: `
@@ -112,6 +114,7 @@ export class Shell implements OnInit {
   private readonly router = inject(Router);
   readonly badges = inject(BadgesService);
   readonly settings = inject(SettingsService);
+  readonly people = inject(PeopleService);
 
   readonly main: NavItem[] = [
     { label: 'Oggi', icon: 'home', path: '/dashboard' },
@@ -130,6 +133,7 @@ export class Shell implements OnInit {
   ngOnInit(): void {
     void this.badges.refresh();
     void this.settings.init();
+    void this.people.load();
     this.router.events.pipe(filter((e) => e instanceof NavigationEnd)).subscribe(() => void this.badges.refresh());
   }
 

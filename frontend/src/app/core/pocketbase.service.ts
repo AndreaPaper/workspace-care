@@ -20,6 +20,8 @@ declare global {
       getSettings?(): Promise<DesktopSettings>;
       setSettings?(patch: Partial<DesktopSettings>): Promise<DesktopSettings>;
       listBackups?(): Promise<BackupInfo[]>;
+      restoreBackup?(source: string): Promise<{ ok: boolean; message?: string }>;
+      chooseRestoreFolder?(): Promise<{ path?: string; error?: string } | null>;
       chooseBackupFolder?(): Promise<DesktopSettings>;
       openFolder?(which: 'data' | 'backup'): Promise<void>;
       checkForUpdates?(): Promise<void>;

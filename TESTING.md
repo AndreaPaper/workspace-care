@@ -426,3 +426,15 @@ Provata sulla finestra Electron vera di una copia separata (porta 8091, cartella
 - PASS: backup: avviso giallo e pallino arancione (sia sulla voce sia sulla rail) quando non c'è nessun backup; «Fai un backup ora» crea la cartella con data e ora, l'elenco mostra data, dimensione (1,4 MB) e «Manuale», avviso e pallino spariscono, la riga dice «Ultimo: oggi».
 - PASS: a 375 px nessun overflow; lista sopra e dettaglio sotto.
 - Non provato: «Avvia con Windows» (nel programma lanciato da sorgente l'interruttore è disattivo: funziona solo nell'app installata), la chiusura della finestra con «resta attiva» spento, «Controlla ora» (non fa nulla da sorgente), «Cambia…» con la finestra di scelta della cartella, il promemoria all'ora scelta.
+
+## Aggiornamento del 19 novembre: Impostazioni, seconda parte
+
+Provata sulla finestra Electron vera di una copia separata (porta 8091, cartelle dati temporanee), senza toccare l'app installata.
+
+- PASS: Persone: aggiunta, nome duplicato rifiutato (anche con maiuscole diverse), rinomina, eliminazione con conferma rossa e nome che resta sui dati; i suggerimenti compaiono nei campi «Richiedente» (richieste) e «A chi» (cassetti).
+- PASS: Budget: con 1000 € le barre mostrano speso 200, ordinato 150, da decidere 200–300 e «ancora disponibile 650» sia in Acquisti sia in Oggi; senza budget restano come prima.
+- PASS: Notifiche extra: il controllo di avvio registra «1 tomorrow, 0 stale» e le query non danno errori; il testo della notifica è provato con la funzione `reminderLines` (quattro casi). Non visto: il banner di Windows e una richiesta davvero ferma (non si può invecchiare `updated`).
+- PASS: Backup automatico: la logica degli orari è provata su otto casi (ultimo momento previsto, recupero dopo spegnimento, interruttore appena acceso, interruttore spento); partito da solo un minuto dopo l'avvio, con la finestra visibile (avviso e ricaricamento); tenendo 3 automatici ne restano 3 e il backup manuale non viene toccato.
+- PASS: Ripristino dalla tabella: conferma rossa nel pannello con focus su «Annulla», avviso «Dati ripristinati», copia di sicurezza creata, e dati davvero tornati a quelli del backup (un'idea aggiunta dopo è sparita).
+- PASS: Ripristino con account diverso (stessa base dati, `credentials.json` nuovo): l'account interno viene riparato, il login con le credenziali nuove funziona e quelle vecchie no, la pagina mostra i dati.
+- Non provato: «Ripristina da un'altra cartella…» (finestra di scelta di Windows), cartella non valida, errore a metà del ripristino (il ritorno ai dati vecchi è nel codice), backup automatico a finestra nascosta.

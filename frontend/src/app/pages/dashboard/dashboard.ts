@@ -7,6 +7,7 @@ import { ControlsService } from '../../services/controls.service';
 import { diffDays, longDay, shortDay, todayDay, toDay, weekdayName } from '../../services/dates';
 import { IdeasService } from '../../services/ideas.service';
 import { PurchasesService } from '../../services/purchases.service';
+import { BudgetService } from '../../services/budget.service';
 import { SettingsService } from '../../services/settings.service';
 import { RequestsService } from '../../services/requests.service';
 
@@ -171,7 +172,19 @@ const FREQUENCY: Record<string, string> = {
           @if (proposed() > 0) {
             <span class="sub">{{ proposed() === 1 ? '1 idea proposta alla direzione, in attesa' : proposed() + ' idee proposte alla direzione, in attesa' }} di risposta.</span>
           }
-          @if (budget().estimateMax > 0 || budget().spent > 0) {
+          @if (bv(); as b) {
+            <div class="budget">
+              <div class="budget-line">
+                <strong>{{ b.spent | currency: 'EUR' : 'symbol' : '1.0-0' }}</strong>
+                <span class="sub">spesi su {{ b.annual | currency: 'EUR' : 'symbol' : '1.0-0' }} di budget dell'anno</span>
+              </div>
+              <div class="bar" role="img" [attr.aria-label]="bvProgress() + '% del budget annuale già speso'"><div [style.width.%]="bvProgress()"></div></div>
+              <span class="sub">
+                @if (b.left < 0) { <strong class="over">{{ -b.left | currency: 'EUR' : 'symbol' : '1.0-0' }} oltre il budget</strong> } @else { {{ b.left | currency: 'EUR' : 'symbol' : '1.0-0' }} ancora disponibili }
+                · {{ budget().toOrder }} da ordinare · <a routerLink="/acquisti">Tutti gli acquisti</a>
+              </span>
+            </div>
+          } @else if (budget().estimateMax > 0 || budget().spent > 0) {
             <div class="budget">
               <div class="budget-line">
                 <strong>{{ budget().spent | currency: 'EUR' : 'symbol' : '1.0-0' }}</strong>
@@ -270,6 +283,7 @@ const FREQUENCY: Record<string, string> = {
     .mini { display: flex; align-items: center; gap: 4px; height: 36px; padding: 0 12px; border: 0; border-radius: 999px; background: #e3eee7; color: #173d2b; font: 600 12px Inter, sans-serif; }
     .mini.solid { background: #2e6a4f; color: #fff; }
     .budget { margin-top: 4px; padding-top: 12px; border-top: 1px solid #efebe3; display: flex; flex-direction: column; gap: 6px; }
+    .over { color: #b42318; }
     .budget-line { display: flex; align-items: baseline; gap: 8px; }
     .budget-line strong { font-size: 20px; font-family: 'Plus Jakarta Sans', Inter, sans-serif; }
     .bar { height: 8px; border-radius: 4px; background: #efebe3; overflow: hidden; }
@@ -367,6 +381,12 @@ export class Dashboard implements OnInit {
   });
   readonly proposed = computed(() => this.ideas().filter((i) => i.stato === 'proposta').length);
   readonly budget = computed(() => this.purchasesService.totals(this.purchases()));
+  private readonly budgetService = inject(BudgetService);
+  readonly bv = computed(() => this.budgetService.view(this.purchases()));
+  readonly bvProgress = computed(() => {
+    const b = this.bv();
+    return b ? Math.min(100, Math.round(((b.spent + b.ordered) / b.annual) * 100)) : 0;
+  });
   readonly progress = computed(() => {
     const b = this.budget();
     const total = b.spent + b.remaining;
@@ -390,6 +410,7 @@ export class Dashboard implements OnInit {
   });
 
   async ngOnInit(): Promise<void> {
+    void this.budgetService.load();
     const [ideas, checks, lastRun, requests, purchases] = await Promise.all([
       this.ideasService.list(),
       this.controlsService.list(),

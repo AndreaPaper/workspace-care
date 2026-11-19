@@ -172,7 +172,7 @@ import { ConfirmService } from '../../services/confirm.service';
     <ng-template #form>
       <div class="md-form">
         <label class="md-field wide"><span>Titolo</span><input type="text" name="titolo" [(ngModel)]="draft.titolo" required /></label>
-        <label class="md-field"><span>Richiedente</span><input type="text" name="richiedente" [(ngModel)]="draft.richiedente" /></label>
+        <label class="md-field"><span>Richiedente</span><input type="text" name="richiedente" list="people-list" autocomplete="off" [(ngModel)]="draft.richiedente" /></label>
         <label class="md-field"><span>Data</span><input type="date" name="data" [(ngModel)]="draft.data" /></label>
         <label class="md-field wide">
           <span>Area</span>

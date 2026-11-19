@@ -79,6 +79,13 @@ export class SettingsService {
     }
   }
 
+  /** Shows the "Salvato" label for a moment (for things saved outside the desktop settings). */
+  flashSaved(): void {
+    this.saved.set(true);
+    clearTimeout(this.savedTimer);
+    this.savedTimer = setTimeout(() => this.saved.set(false), 2000);
+  }
+
   async chooseBackupFolder(): Promise<void> {
     const next = await window.workspaceCare?.chooseBackupFolder?.();
     if (next) this.settings.set(next);
@@ -95,6 +102,11 @@ export class SettingsService {
       this.backupBusy.set(false);
       await this.refreshBackups();
     }
+  }
+
+  /** Replaces all the data with a backup; the window reloads when it is done. */
+  async restore(source: string): Promise<{ ok: boolean; message?: string } | undefined> {
+    return window.workspaceCare?.restoreBackup?.(source);
   }
 
   openFolder(which: 'data' | 'backup'): void {

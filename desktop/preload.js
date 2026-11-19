@@ -14,6 +14,8 @@ contextBridge.exposeInMainWorld('workspaceCare', {
   exportBackup: (folder, choose) => ipcRenderer.invoke('export-backup', folder, choose),
   getSettings: () => ipcRenderer.invoke('settings-get'),
   setSettings: (patch) => ipcRenderer.invoke('settings-set', patch),
+  restoreBackup: (source) => ipcRenderer.invoke('backup-restore', source),
+  chooseRestoreFolder: () => ipcRenderer.invoke('backup-choose-restore'),
   listBackups: () => ipcRenderer.invoke('backup-list'),
   chooseBackupFolder: () => ipcRenderer.invoke('backup-choose-folder'),
   openFolder: (which) => ipcRenderer.invoke('open-folder', which),
