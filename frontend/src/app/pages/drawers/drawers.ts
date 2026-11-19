@@ -71,6 +71,7 @@ export class DrawerDialog {
   readonly error = signal('');
 
   async save(): Promise<void> {
+    if (this.saving()) return;
     this.saving.set(true);
     const payload = { numero: Number(this.numero), tipo: this.tipo, assegnata_a: this.assegnataA.trim(), area: this.area };
     try {
@@ -175,6 +176,7 @@ export class Drawers implements OnInit {
   }
 
   async createUpTo(): Promise<void> {
+    if (this.bulkRunning()) return;
     if (!this.upTo) return;
     this.bulkRunning.set(true);
     try {

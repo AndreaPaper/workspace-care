@@ -130,9 +130,18 @@ export class Dashboard implements OnInit {
     this.openRequests.set(requests);
   }
 
+  /** Checks being marked as done right now: a double click must not record two executions. */
+  private readonly marking = new Set<string>();
+
   async done(check: Check): Promise<void> {
-    await this.controls.markDone(check.id);
-    this.dueChecks.set((await this.controls.list()).filter((c) => this.controls.bucket(c) !== 'dopo'));
+    if (this.marking.has(check.id)) return;
+    this.marking.add(check.id);
+    try {
+      await this.controls.markDone(check.id);
+      this.dueChecks.set((await this.controls.list()).filter((c) => this.controls.bucket(c) !== 'dopo'));
+    } finally {
+      this.marking.delete(check.id);
+    }
   }
 
   progress(b: PurchaseTotals): number {

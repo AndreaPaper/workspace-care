@@ -112,6 +112,7 @@ export class PurchaseDialog {
   readonly error = signal('');
 
   async save(): Promise<void> {
+    if (this.saving()) return;
     this.saving.set(true);
     this.error.set('');
     const payload: Partial<Purchase> = {

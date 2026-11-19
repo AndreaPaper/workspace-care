@@ -83,6 +83,7 @@ export class CheckDialog {
   }
 
   async save(): Promise<void> {
+    if (this.saving()) return;
     this.saving.set(true);
     this.error.set('');
     const payload = { nome: this.nome.trim(), area: this.area, frequenza: this.frequenza, giorno: Number(this.giorno) };

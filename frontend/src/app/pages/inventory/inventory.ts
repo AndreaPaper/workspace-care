@@ -69,6 +69,7 @@ export class InventoryDialog {
   readonly error = signal('');
 
   async save(): Promise<void> {
+    if (this.saving()) return;
     this.saving.set(true);
     const payload = { nome: this.nome.trim(), area: this.area, posizione: this.posizione.trim(), note: this.note };
     try {

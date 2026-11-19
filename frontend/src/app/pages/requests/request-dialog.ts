@@ -118,6 +118,12 @@ export class RequestDialog {
   }
 
   async save(): Promise<void> {
+    if (this.saving()) return;
+    await this.persist();
+  }
+
+  /** Saves the request; callers are responsible for the saving() guard. */
+  private async persist(): Promise<void> {
     this.saving.set(true);
     this.error.set('');
     try {
@@ -133,6 +139,7 @@ export class RequestDialog {
 
   /** Turns the request into an idea (same title, description and area) and links the two. */
   async createIdea(): Promise<void> {
+    if (this.saving()) return;
     this.saving.set(true);
     this.error.set('');
     try {
@@ -144,7 +151,7 @@ export class RequestDialog {
       });
       this.idea = idea.id;
       this.data.ideas.unshift(idea);
-      await this.save();
+      await this.persist();
     } catch {
       this.error.set("Impossibile creare l'idea.");
       this.saving.set(false);

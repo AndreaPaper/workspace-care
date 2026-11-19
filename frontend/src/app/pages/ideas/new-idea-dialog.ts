@@ -58,6 +58,7 @@ export class NewIdeaDialog {
   readonly error = signal('');
 
   async save(): Promise<void> {
+    if (this.saving()) return;
     this.saving.set(true);
     this.error.set('');
     try {

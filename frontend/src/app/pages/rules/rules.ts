@@ -68,6 +68,7 @@ export class RuleDialog {
   readonly error = signal('');
 
   async save(): Promise<void> {
+    if (this.saving()) return;
     this.saving.set(true);
     const payload = { tema: this.tema, stato: this.stato, testo: this.testo.trim() };
     try {
