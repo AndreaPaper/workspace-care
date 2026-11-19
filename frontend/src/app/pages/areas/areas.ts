@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -13,7 +13,7 @@ import { IdeasService } from '../../services/ideas.service';
   selector: 'app-areas',
   imports: [FormsModule, MatButtonModule, MatFormFieldModule, MatIconModule, MatInputModule, MatTableModule],
   template: `
-    <h1>Aree</h1>
+    <section class="panel">
     <form class="add" (ngSubmit)="add()">
       <mat-form-field>
         <mat-label>Nuova area</mat-label>
@@ -50,8 +50,10 @@ import { IdeasService } from '../../services/ideas.service';
       <tr mat-header-row *matHeaderRowDef="columns"></tr>
       <tr mat-row *matRowDef="let row; columns: columns"></tr>
     </table>
+    </section>
   `,
   styles: `
+    .panel { padding: 18px; border-radius: 24px; background: #fff; max-width: 720px; }
     .add { display: flex; gap: .5rem; align-items: center; margin-bottom: .5rem; }
     table { width: 100%; max-width: 640px; }
     .actions { text-align: right; white-space: nowrap; }
@@ -60,6 +62,8 @@ import { IdeasService } from '../../services/ideas.service';
   `,
 })
 export class Areas implements OnInit {
+  /** Emitted after any change, so that the tab counters of the Ufficio page can refresh. */
+  readonly changed = output<void>();
   private readonly areasService = inject(AreasService);
   private readonly ideasService = inject(IdeasService);
 
@@ -79,6 +83,7 @@ export class Areas implements OnInit {
     const [areas, counts] = await Promise.all([this.areasService.list(), this.ideasService.countByArea()]);
     this.areas.set(areas);
     this.counts.set(counts);
+    this.changed.emit();
   }
 
   async add(): Promise<void> {

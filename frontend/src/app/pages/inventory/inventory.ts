@@ -1,4 +1,4 @@
-import { Component, computed, inject, DestroyRef, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, DestroyRef, OnInit, output, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { watchPageParams } from '../../core/page-params';
 import { FormsModule } from '@angular/forms';
@@ -99,8 +99,9 @@ export class InventoryDialog {
     MatSlideToggleModule, MatTableModule,
   ],
   template: `
+    <section class="panel">
     <div class="head">
-      <h1>Inventario</h1>
+      <span></span>
       <button mat-flat-button (click)="open()"><mat-icon>add</mat-icon> Nuovo oggetto</button>
     </div>
     <div class="filters">
@@ -143,8 +144,10 @@ export class InventoryDialog {
     } @empty {
       <p class="muted">Nessun oggetto in inventario.</p>
     }
+    </section>
   `,
   styles: `
+    .panel { padding: 18px; border-radius: 24px; background: #fff; }
     .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
     .head h1 { margin: 0; }
     .filters { display: flex; gap: .75rem; flex-wrap: wrap; align-items: center; margin-bottom: 1rem; }
@@ -155,6 +158,8 @@ export class InventoryDialog {
   `,
 })
 export class Inventory implements OnInit {
+  /** Emitted after any change, so that the tab counters of the Ufficio page can refresh. */
+  readonly changed = output<void>();
   private readonly service = inject(InventoryService);
   private readonly areasService = inject(AreasService);
   private readonly dialog = inject(MatDialog);
@@ -203,7 +208,9 @@ export class Inventory implements OnInit {
       .open(InventoryDialog, { data: { item, areas: this.areas() }, width: '30rem', maxWidth: '95vw' })
       .afterClosed()
       .subscribe(async (res?: InventoryItem | 'deleted') => {
-        if (res) this.items.set(await this.service.list());
+        if (!res) return;
+        this.items.set(await this.service.list());
+        this.changed.emit();
       });
   }
 }

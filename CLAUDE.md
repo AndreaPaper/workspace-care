@@ -43,7 +43,7 @@ essere veloce da usare e richiedere poca manutenzione.
 
 ## Schermate
 La grafica di dashboard e sidebar segue la proposta «D · Mix» del design (artifact "Workspace Care – Dashboard e sidebar").
-- **Sidebar**: rail compatta (92 px; su telefono diventa una striscia scorrevole in alto) con logo, menu **Nuovo** (idea, richiesta, acquisto, controllo), contatori su Richieste (aperte) e Controlli (in ritardo o di oggi), poi Inventario, Cassettiere, Regole, Riepilogo, Aree. I contatori stanno in `services/badges.service.ts`.
+- **Sidebar**: rail compatta (92 px; su telefono diventa una striscia scorrevole in alto) con logo, menu **Nuovo** (idea, richiesta, acquisto, controllo), contatori su Richieste (aperte) e Controlli (in ritardo o di oggi), poi Ufficio (icona mappa), Regole, Riepilogo. I contatori stanno in `services/badges.service.ts`.
 - **Ricerca globale** (Ctrl K) in cima a ogni pagina: idee, richieste, acquisti, inventario, regole (`core/search`). I risultati aprono la pagina con `?q=`; `?nuova=1` apre il dialog di creazione (`core/page-params.ts`).
 - **Dashboard**: saluto e riepilogo del giorno, avviso se un controllo è in ritardo, tutti i controlli ordinati per scadenza, idee da valutare (stato idea o da_valutare) con filtro per urgenza e smistamento Alta/Media/Bassa con un clic, richieste aperte, idee approvate pronte per l'acquisto e budget.
 
@@ -54,7 +54,9 @@ Pezzi comuni in `core/ui` (`master-detail`, `steps-bar`, `page-head`, `selection
 Idee: tab (da valutare / in corso / chiuse), filtro per urgenza (campo `priorita`) e link con anteprime; non ci sono più la griglia con immagini né il kanban.
 Acquisti: fascia budget con speso / ordinato da pagare / stima ancora da decidere (`PurchasesService.totals`).
 
-Altre pagine: Dashboard, Inventario, Cassettiere, Regole, Riepilogo per la direzione (esporta PDF), Aree.
+**Ufficio** (`#/ufficio?tab=inventario|cassettiere|aree`, `pages/office`): un'unica voce di menu con tre schede e contatori; sostituisce le voci Inventario, Cassettiere e Aree (i vecchi indirizzi `#/inventario`, `#/cassettiere`, `#/aree` reindirizzano alla scheda giusta, conservando `?q=`). Cassettiere: legenda (personale / condivisa / libera), una scatola per area con blocchi numerati, clic su un blocco = modifica; «Libera» = senza `assegnata_a`. I componenti `Inventory`, `Drawers`, `Areas` emettono `changed` per aggiornare i contatori.
+
+Altre pagine: Dashboard, Regole, Riepilogo per la direzione (esporta PDF).
 Il PDF si genera dalla pagina `#/riepilogo` con `webContents.printToPDF` di Electron (stile `@media print`).
 
 ## Convenzioni

@@ -337,3 +337,13 @@ Per questo aggiornamento: app di sviluppo con database pulito, interfaccia pilot
 - L'installer non è stato installato né avviato.
 - La navigazione da tastiera delle liste (le voci si raggiungono con Tab e si aprono con Invio, ma non l'ho provata a mano) e il comportamento su touch reale.
 - La scelta del link nella conversione usa ancora una piccola finestra di dialogo: è l'unico dialogo rimasto nelle quattro schede.
+
+## Aggiornamento del 19 novembre: pagina Ufficio
+
+Inventario, Cassettiere e Aree sono ora tre schede di `#/ufficio`; i casi B e I sopra restano validi, ma la grafica sta nelle schede.
+
+- PASS: tre schede con contatori (2 / 11 / 8) che si aggiornano dopo aggiunta ed eliminazione di un'area.
+- PASS: `#/inventario?q=aspira`, `#/aree`, `#/cassettiere` reindirizzano alla scheda giusta; il filtro `q` resta.
+- PASS: Cassettiere con legenda (7 personali, 2 condivise, 2 libere), una scatola per area, "Senza area" in fondo; clic su un blocco apre la modifica.
+- PASS: nessun overflow orizzontale a 1440 e 375 px su tutte e tre le schede.
+- Non provato: creazione in blocco e modifica/elimina inventario dalla nuova grafica (codice invariato).

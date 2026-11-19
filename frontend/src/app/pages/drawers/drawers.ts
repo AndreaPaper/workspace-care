@@ -1,9 +1,8 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { RouterLink } from '@angular/router';
@@ -30,7 +29,7 @@ import { DrawersService } from '../../services/drawers.service';
           </mat-select>
         </mat-form-field>
         <mat-form-field>
-          <mat-label>Assegnata a</mat-label>
+          <mat-label>Assegnata a (o contenuto, se condivisa)</mat-label>
           <input matInput name="assegnata_a" [(ngModel)]="assegnataA" />
         </mat-form-field>
         <mat-form-field>
@@ -94,50 +93,75 @@ export class DrawerDialog {
 
 @Component({
   selector: 'app-drawers',
-  imports: [FormsModule, RouterLink, MatButtonModule, MatFormFieldModule, MatIconModule, MatInputModule],
+  imports: [FormsModule, RouterLink],
   template: `
-    <div class="head">
-      <h1>Cassettiere</h1>
-      <button mat-flat-button (click)="open()"><mat-icon>add</mat-icon> Nuova cassettiera</button>
-    </div>
+    <section aria-label="Cassettiere" class="wrap">
+      <div class="bar">
+        <div class="legend">
+          <span><i class="sw personal"></i>Personale · {{ count().personale }}</span>
+          <span><i class="sw shared"></i>Condivisa · {{ count().condivisa }}</span>
+          <span><i class="sw free"></i>Libera · {{ count().free }}</span>
+          <a routerLink="/regole">Regola sulle cassettiere</a>
+        </div>
+        <button type="button" class="btn btn-primary small" (click)="open()">+ Cassettiera</button>
+      </div>
 
-    <div class="summary">
-      <span class="chip">{{ count().personale }} personali</span>
-      <span class="chip">{{ count().condivisa }} condivise</span>
-      <span class="chip" [class.ok]="count().free === 0" [class.warn]="count().free > 0">{{ count().free }} senza assegnatario</span>
-      <a routerLink="/regole">Regola sulle cassettiere</a>
-    </div>
-
-    <form class="bulk" (ngSubmit)="createUpTo()">
-      <mat-form-field>
-        <mat-label>Crea le cassettiere da 1 a…</mat-label>
-        <input matInput type="number" min="1" max="200" name="upto" [(ngModel)]="upTo" />
-      </mat-form-field>
-      <button mat-stroked-button type="submit" [disabled]="!upTo || bulkRunning()">Crea quelle mancanti</button>
-    </form>
-
-    <div class="cards">
-      @for (d of drawers(); track d.id) {
-        <button class="card" (click)="open(d)">
-          <span class="num">{{ d.numero }}</span>
-          <span class="chip">{{ d.tipo }}</span>
-          <strong>{{ d.assegnata_a || '— libera —' }}</strong>
-          <small class="muted">{{ d.expand?.area?.nome }}</small>
-        </button>
+      @for (g of groups(); track g.name) {
+        <div class="area-box">
+          <strong>{{ g.name }}</strong>
+          <div class="grid">
+            @for (d of g.items; track d.id) {
+              <button type="button" [class]="'block ' + kind(d)" (click)="open(d)" [attr.aria-label]="'Cassettiera ' + d.numero + ': ' + label(d)">
+                <span class="n">N. {{ d.numero }}</span>
+                <strong>{{ label(d) }}</strong>
+              </button>
+            }
+          </div>
+        </div>
       } @empty {
-        <p class="muted">Nessuna cassettiera. Creale una alla volta oppure indica quante sono qui sopra.</p>
+        <p class="empty">Nessuna cassettiera. Aggiungine una con «+ Cassettiera» oppure creale tutte insieme qui sotto.</p>
       }
-    </div>
+
+      <details class="bulk-box">
+        <summary>Crea più cassettiere insieme</summary>
+        <form class="bulk" (ngSubmit)="createUpTo()">
+          <label>
+            <span>Crea le cassettiere da 1 a…</span>
+            <input type="number" min="1" max="200" name="upto" [(ngModel)]="upTo" />
+          </label>
+          <button type="submit" class="btn btn-outline small" [disabled]="!upTo || bulkRunning()">Crea quelle mancanti</button>
+        </form>
+      </details>
+    </section>
   `,
   styles: `
-    .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
-    .head h1 { margin: 0; }
-    .summary { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; margin-bottom: 1rem; }
-    .bulk { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
-    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: .75rem; }
-    .card { font: inherit; text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: .25rem; padding: .75rem; border: 1px solid var(--mat-sys-outline-variant); border-radius: 12px; background: var(--mat-sys-surface-container-lowest); color: inherit; }
-    .card:hover { box-shadow: 0 2px 8px rgb(0 0 0 / .12); }
-    .num { font-size: 1.6rem; font-weight: 700; }
+    .wrap { display: flex; flex-direction: column; gap: 16px; }
+    .bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+    .legend { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; font-size: 13px; color: #45473f; }
+    .legend span { display: flex; align-items: center; gap: 6px; }
+    .legend a { color: #245a41; font-weight: 600; text-decoration: none; }
+    .sw { width: 14px; height: 14px; border-radius: 4px; display: inline-block; box-sizing: border-box; }
+    .sw.personal { background: #e6f1fc; border: 1px solid #a9c6e8; }
+    .sw.shared { background: #edf5f0; border: 1px solid #a9cdb8; }
+    .sw.free { background: #fff; border: 1px dashed #a8a291; }
+    .btn.small { height: 40px; font-size: 13px; padding: 0 16px; }
+    .area-box { padding: 18px; border-radius: 24px; background: #fff; display: flex; flex-direction: column; gap: 12px; }
+    .area-box > strong { font-size: 14px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+    .block { padding: 12px; border-radius: 14px; border: 1px solid; text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: 4px; font: 14px Inter, system-ui, sans-serif; min-width: 0; }
+    .block .n { font-size: 12px; font-weight: 700; }
+    .block strong { font-weight: 600; overflow-wrap: anywhere; }
+    .block.personal { border-color: #a9c6e8; background: #e6f1fc; color: #0f3b6e; }
+    .block.shared { border-color: #a9cdb8; background: #edf5f0; color: #173d2b; }
+    .block.free { border: 1px dashed #a8a291; background: #fff; color: #45473f; }
+    .block:hover { filter: brightness(.97); }
+    .block:focus-visible { outline: 3px solid #2f6fb5; outline-offset: 2px; }
+    .empty { margin: 0; color: #55584f; }
+    .bulk-box { font-size: 13px; color: #45473f; }
+    .bulk-box summary { cursor: pointer; font-weight: 600; }
+    .bulk { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; padding-top: 10px; }
+    .bulk label { display: flex; flex-direction: column; gap: 4px; }
+    .bulk input { height: 40px; width: 120px; padding: 0 12px; border: 1px solid #c9c3b6; border-radius: 12px; font: 14px Inter, system-ui, sans-serif; }
   `,
 })
 export class Drawers implements OnInit {
@@ -145,18 +169,34 @@ export class Drawers implements OnInit {
   private readonly areasService = inject(AreasService);
   private readonly dialog = inject(MatDialog);
 
+  /** Emitted after any change, so that the tab counters of the Ufficio page can refresh. */
+  readonly changed = output<void>();
+
   readonly drawers = signal<Drawer[]>([]);
   readonly areas = signal<Area[]>([]);
   readonly bulkRunning = signal(false);
   upTo: number | null = null;
 
+  /** A drawer without an assignee is free, whatever its type. */
   readonly count = computed(() => {
     const list = this.drawers();
     return {
-      personale: list.filter((d) => d.tipo === 'personale').length,
-      condivisa: list.filter((d) => d.tipo === 'condivisa').length,
+      personale: list.filter((d) => d.assegnata_a && d.tipo === 'personale').length,
+      condivisa: list.filter((d) => d.assegnata_a && d.tipo === 'condivisa').length,
       free: list.filter((d) => !d.assegnata_a).length,
     };
+  });
+
+  /** One box per area, drawers by number; drawers without an area go last. */
+  readonly groups = computed(() => {
+    const by = new Map<string, Drawer[]>();
+    for (const d of this.drawers()) {
+      const name = d.expand?.area?.nome ?? 'Senza area';
+      by.set(name, [...(by.get(name) ?? []), d]);
+    }
+    return [...by.entries()]
+      .sort(([a], [b]) => (a === 'Senza area' ? 1 : b === 'Senza area' ? -1 : a.localeCompare(b)))
+      .map(([name, items]) => ({ name, items: items.sort((x, y) => x.numero - y.numero) }));
   });
 
   async ngOnInit(): Promise<void> {
@@ -165,13 +205,23 @@ export class Drawers implements OnInit {
     this.areas.set(areas);
   }
 
+  kind(d: Drawer): string {
+    return !d.assegnata_a ? 'free' : d.tipo === 'condivisa' ? 'shared' : 'personal';
+  }
+
+  label(d: Drawer): string {
+    return d.assegnata_a || 'Libera';
+  }
+
   open(drawer?: Drawer): void {
     const nextNumber = Math.max(0, ...this.drawers().map((d) => d.numero)) + 1;
     this.dialog
       .open(DrawerDialog, { data: { drawer, areas: this.areas(), nextNumber }, width: '28rem', maxWidth: '95vw' })
       .afterClosed()
       .subscribe(async (res?: Drawer | 'deleted') => {
-        if (res) this.drawers.set(await this.service.list());
+        if (!res) return;
+        this.drawers.set(await this.service.list());
+        this.changed.emit();
       });
   }
 
@@ -182,6 +232,7 @@ export class Drawers implements OnInit {
     try {
       await this.service.createUpTo(Math.min(Number(this.upTo), 200), this.drawers());
       this.drawers.set(await this.service.list());
+      this.changed.emit();
     } finally {
       this.bulkRunning.set(false);
     }

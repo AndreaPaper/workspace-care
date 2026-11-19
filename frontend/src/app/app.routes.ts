@@ -2,6 +2,10 @@ import { inject } from '@angular/core';
 import { Router, Routes } from '@angular/router';
 import { authGuard } from './core/auth.guard';
 
+/** Old addresses of the three sections now live as tabs of the Ufficio page, keeping any query parameters (e.g. ?q=). */
+const toOffice = (tab: string) => ({ queryParams }: { queryParams: Record<string, string> }) =>
+  inject(Router).createUrlTree(['/ufficio'], { queryParams: { ...queryParams, tab } });
+
 export const routes: Routes = [
   { path: 'login', loadComponent: () => import('./pages/login/login').then((m) => m.Login) },
   {
@@ -17,11 +21,12 @@ export const routes: Routes = [
       { path: 'richieste', loadComponent: () => import('./pages/requests/requests').then((m) => m.Requests) },
       { path: 'controlli', loadComponent: () => import('./pages/controls/controls').then((m) => m.Controls) },
       { path: 'acquisti', loadComponent: () => import('./pages/purchases/purchases').then((m) => m.Purchases) },
-      { path: 'inventario', loadComponent: () => import('./pages/inventory/inventory').then((m) => m.Inventory) },
-      { path: 'cassettiere', loadComponent: () => import('./pages/drawers/drawers').then((m) => m.Drawers) },
+      { path: 'ufficio', loadComponent: () => import('./pages/office/office').then((m) => m.Office) },
+      { path: 'inventario', redirectTo: toOffice('inventario') },
+      { path: 'cassettiere', redirectTo: toOffice('cassettiere') },
       { path: 'regole', loadComponent: () => import('./pages/rules/rules').then((m) => m.Rules) },
       { path: 'riepilogo', loadComponent: () => import('./pages/report/report').then((m) => m.Report) },
-      { path: 'aree', loadComponent: () => import('./pages/areas/areas').then((m) => m.Areas) },
+      { path: 'aree', redirectTo: toOffice('aree') },
     ],
   },
   { path: '**', redirectTo: '' },

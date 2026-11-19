@@ -102,11 +102,9 @@ export class Shell implements OnInit {
   ];
 
   readonly office: NavItem[] = [
-    { label: 'Inventario', icon: 'inventory_2', path: '/inventario' },
-    { label: 'Cassettiere', icon: 'table_rows', path: '/cassettiere' },
+    { label: 'Ufficio', icon: 'map', path: '/ufficio' },
     { label: 'Regole', icon: 'menu_book', path: '/regole' },
     { label: 'Riepilogo', icon: 'description', path: '/riepilogo' },
-    { label: 'Aree', icon: 'map', path: '/aree' },
   ];
 
   ngOnInit(): void {
