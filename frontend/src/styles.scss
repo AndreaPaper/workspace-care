@@ -9,6 +9,8 @@
 @use '@fontsource/plus-jakarta-sans/700.css' as jakarta-700;
 @use '@fontsource/plus-jakarta-sans/800.css' as jakarta-800;
 
+@use './styles/master-detail';
+
 html {
   @include mat.theme(
     (
