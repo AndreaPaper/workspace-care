@@ -11,6 +11,13 @@ export interface PurchaseTotals {
   remaining: number;
   /** Rows not yet ordered. */
   toOrder: number;
+  /** Paid and received: price of the rows that are arrivato or montato. */
+  received: number;
+  /** Ordered, still to pay or arrive: price (or the top estimate) of the rows that are ordinato. */
+  ordered: number;
+  /** Not decided yet: estimate range of the rows that are da_proporre or approvato. */
+  undecidedMin: number;
+  undecidedMax: number;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -47,7 +54,10 @@ export class PurchasesService {
   }
 
   totals(purchases: Purchase[]): PurchaseTotals {
-    const t: PurchaseTotals = { estimateMin: 0, estimateMax: 0, spent: 0, remaining: 0, toOrder: 0 };
+    const t: PurchaseTotals = {
+      estimateMin: 0, estimateMax: 0, spent: 0, remaining: 0, toOrder: 0,
+      received: 0, ordered: 0, undecidedMin: 0, undecidedMax: 0,
+    };
     for (const p of purchases) {
       const min = p.stima_min || 0;
       const max = p.stima_max || min;
@@ -55,7 +65,15 @@ export class PurchasesService {
       t.estimateMax += max;
       if (p.prezzo_effettivo) t.spent += p.prezzo_effettivo;
       else t.remaining += max;
-      if (p.stato === 'da_proporre' || p.stato === 'approvato') t.toOrder++;
+      if (p.stato === 'da_proporre' || p.stato === 'approvato') {
+        t.toOrder++;
+        t.undecidedMin += min;
+        t.undecidedMax += max;
+      } else if (p.stato === 'ordinato') {
+        t.ordered += p.prezzo_effettivo || max;
+      } else {
+        t.received += p.prezzo_effettivo || 0;
+      }
     }
     return t;
   }

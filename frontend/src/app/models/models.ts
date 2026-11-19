@@ -69,6 +69,7 @@ export const labelOf = (list: readonly { value: string; label: string }[], value
 
 export const CHECK_FREQUENCIES = [
   { value: 'settimanale', label: 'Settimanale' },
+  { value: 'bisettimanale', label: 'Ogni 2 settimane' },
   { value: 'mensile', label: 'Mensile' },
   { value: 'trimestrale', label: 'Trimestrale' },
 ];
@@ -96,7 +97,7 @@ export const REQUEST_STATUSES = [
   { value: 'non_fattibile', label: 'Non fattibile' },
 ];
 
-export type CheckFrequency = 'settimanale' | 'mensile' | 'trimestrale';
+export type CheckFrequency = 'settimanale' | 'bisettimanale' | 'mensile' | 'trimestrale';
 export type CheckOutcome = 'ok' | 'da_sistemare';
 export type RequestStatus = 'ricevuta' | 'in_valutazione' | 'in_corso' | 'fatta' | 'non_fattibile';
 
@@ -196,4 +197,12 @@ export interface Rule extends RecordModel {
   tema: RuleTopic;
   testo: string;
   stato: RuleStatus;
+}
+
+/** One line of a request's history: status changes are written by the server, notes by the app. */
+export interface RequestEvent extends RecordModel {
+  richiesta: string;
+  tipo: 'stato' | 'nota';
+  testo: string;
+  data: string;
 }

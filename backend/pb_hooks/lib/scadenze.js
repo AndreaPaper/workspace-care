@@ -29,7 +29,7 @@ function weekdayOnOrAfter(start, giorno) {
 
 // First due date for a new or modified check: the next occurrence from today, today included.
 function initialDue(frequenza, giorno, today) {
-  if (frequenza === 'settimanale') return weekdayOnOrAfter(today, giorno);
+  if (frequenza === 'settimanale' || frequenza === 'bisettimanale') return weekdayOnOrAfter(today, giorno);
   const thisMonth = dayOfMonth(today.getFullYear(), today.getMonth(), giorno);
   return thisMonth >= today ? thisMonth : dayOfMonth(today.getFullYear(), today.getMonth() + 1, giorno);
 }
@@ -40,6 +40,12 @@ function nextAfterDone(frequenza, giorno, today) {
   if (frequenza === 'settimanale') {
     const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
     return weekdayOnOrAfter(tomorrow, giorno);
+  }
+  if (frequenza === 'bisettimanale') {
+    // Fixed weekday, every two weeks: the first such day at least 8 days from today, so that a check
+    // done on its due day comes back 14 days later and a late one does not leave a backlog.
+    const later = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 8);
+    return weekdayOnOrAfter(later, giorno);
   }
   const months = frequenza === 'trimestrale' ? 3 : 1;
   return dayOfMonth(today.getFullYear(), today.getMonth() + months, giorno);
