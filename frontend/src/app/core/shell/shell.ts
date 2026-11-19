@@ -99,6 +99,16 @@ interface NavItem {
     .divider { width: 48px; height: 1px; margin: 8px 12px; background: #e6e2d9; flex: none; }
     .content { flex: 1; min-width: 0; box-sizing: border-box; padding: 20px 40px 40px; display: flex; flex-direction: column; gap: 22px; }
     main { min-width: 0; }
+    /* On a window that is not very tall the whole rail (up to Impostazioni) still fits without scrolling. */
+    @media (min-width: 801px) and (max-height: 880px) {
+      .rail { padding-top: 10px; padding-bottom: 8px; gap: 1px; }
+      .logo { margin-bottom: 4px; }
+      .item { padding: 2px 0 4px; gap: 2px; }
+      .ico { height: 26px; }
+      .plus { width: 46px; height: 46px; border-radius: 15px; }
+      .new { margin-bottom: 2px; padding-bottom: 4px; }
+      .divider { margin: 4px 12px; }
+    }
     @media (max-width: 800px) {
       :host { flex-direction: column; }
       .rail { width: auto; height: auto; flex-direction: row; align-items: flex-start; justify-content: flex-start; padding: 8px 10px; border-right: 0; border-bottom: 1px solid #e6e2d9; overflow-x: auto; overflow-y: hidden; z-index: 5; gap: 2px; }
