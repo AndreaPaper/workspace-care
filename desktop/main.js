@@ -26,6 +26,109 @@ let tray = null;
 let quitting = false;
 let stoppedOnPurpose = false;
 
+// --- Settings -----------------------------------------------------------------------------
+// Preferences of the desktop app live in settings.json (user data folder). The Settings page of the Angular app reads
+// and writes them through IPC; whatever has an effect outside the page (start with Windows, tray, reminder time,
+// update checks, backup folder) is applied here.
+const settingsFile = path.join(app.getPath('userData'), 'settings.json');
+const DEFAULT_SETTINGS = {
+  openAtLogin: true,
+  keepInTray: true,
+  remindersEnabled: true,
+  reminderHour: 9,
+  backupFolder: '',
+  autoUpdateCheck: true,
+  userName: '',
+};
+
+function loadSettings() {
+  try {
+    return { ...DEFAULT_SETTINGS, ...JSON.parse(fs.readFileSync(settingsFile, 'utf8')) };
+  } catch {
+    return { ...DEFAULT_SETTINGS };
+  }
+}
+let settings = loadSettings();
+
+function backupFolderPath() {
+  return settings.backupFolder || path.join(app.getPath('documents'), 'Backup Workspace Care');
+}
+
+function applyLoginItem() {
+  if (!isDev) app.setLoginItemSettings({ openAtLogin: settings.openAtLogin });
+}
+
+function publicSettings() {
+  return {
+    ...settings,
+    backupFolder: backupFolderPath(),
+    backupFolderIsDefault: !settings.backupFolder,
+    version: app.getVersion(),
+    dataDir: app.getPath('userData'),
+    canAutoStart: !isDev,
+  };
+}
+
+function saveSettings(patch) {
+  const next = { ...settings };
+  for (const key of Object.keys(DEFAULT_SETTINGS)) {
+    if (patch && key in patch && typeof patch[key] === typeof DEFAULT_SETTINGS[key]) next[key] = patch[key];
+  }
+  next.reminderHour = Math.min(23, Math.max(0, Math.round(next.reminderHour)));
+  next.userName = next.userName.trim().slice(0, 40);
+  settings = next;
+  fs.mkdirSync(path.dirname(settingsFile), { recursive: true });
+  fs.writeFileSync(settingsFile, JSON.stringify(settings, null, 2));
+  applyLoginItem();
+  return publicSettings();
+}
+
+function dirSize(p) {
+  let total = 0;
+  for (const e of fs.readdirSync(p, { withFileTypes: true })) {
+    const f = path.join(p, e.name);
+    total += e.isDirectory() ? dirSize(f) : fs.statSync(f).size;
+  }
+  return total;
+}
+
+/** The backups found in the backup folder, newest first. */
+function listBackups() {
+  const dir = backupFolderPath();
+  try {
+    return fs
+      .readdirSync(dir, { withFileTypes: true })
+      .filter((d) => d.isDirectory() && d.name.startsWith('workspace-care-backup-'))
+      .map((d) => {
+        const full = path.join(dir, d.name);
+        return { name: d.name, path: full, when: fs.statSync(full).mtimeMs, size: dirSize(full) };
+      })
+      .sort((a, b) => b.when - a.when)
+      .slice(0, 30);
+  } catch {
+    return [];
+  }
+}
+
+ipcMain.handle('settings-get', () => publicSettings());
+ipcMain.handle('settings-set', (_event, patch) => saveSettings(patch));
+ipcMain.handle('backup-list', () => listBackups());
+ipcMain.handle('backup-choose-folder', async (event) => {
+  const res = await dialog.showOpenDialog(BrowserWindow.fromWebContents(event.sender), {
+    title: 'Scegli la cartella dei backup',
+    defaultPath: backupFolderPath(),
+    properties: ['openDirectory', 'createDirectory'],
+  });
+  return res.canceled ? publicSettings() : saveSettings({ backupFolder: res.filePaths[0] });
+});
+// Only the data folder and the backup folder can be opened from the page.
+ipcMain.handle('open-folder', (_event, which) => {
+  const target = which === 'data' ? app.getPath('userData') : which === 'backup' ? backupFolderPath() : null;
+  if (!target) return;
+  fs.mkdirSync(target, { recursive: true });
+  return shell.openPath(target);
+});
+
 // --- Updates -----------------------------------------------------------------------------------
 // New versions are published as GitHub releases (see build.publish in package.json). The app checks at startup
 // and every few hours; the Angular app shows the banner and drives the steps through IPC:
@@ -33,7 +136,7 @@ let stoppedOnPurpose = false;
 // overrides the source, for tests.
 const UPDATE_CHECK_MS = 6 * 60 * 60 * 1000;
 let autoUpdater = null;
-let updateState = { status: 'idle', version: '', percent: 0, message: '', notes: [] };
+let updateState = { status: 'idle', version: '', percent: 0, message: '', notes: [], lastCheck: 0 };
 
 // Messages for the app (shown as toasts). They are queued, because the window may be reloading when they are sent.
 const pendingToasts = [];
@@ -45,7 +148,7 @@ ipcMain.handle('toast-take', () => pendingToasts.splice(0));
 ipcMain.handle('show-in-folder', (_event, target) => {
   if (typeof target === 'string') shell.showItemInFolder(target);
 });
-ipcMain.handle('export-backup', (_event, folder) => exportBackup(typeof folder === 'string' ? folder : undefined));
+ipcMain.handle('export-backup', (_event, folder, choose) => exportBackup(typeof folder === 'string' ? folder : undefined, choose === true));
 
 /** Release notes from the GitHub release, as plain lines (list items or text lines). */
 function notesOf(info) {
@@ -77,8 +180,8 @@ function setupUpdater() {
   autoUpdater.autoInstallOnAppQuit = true;
   if (feed) autoUpdater.setFeedURL({ provider: 'generic', url: feed });
   autoUpdater.on('checking-for-update', () => setUpdateState({ status: 'checking', message: '' }));
-  autoUpdater.on('update-available', (info) => setUpdateState({ status: 'available', version: info.version, percent: 0, notes: notesOf(info) }));
-  autoUpdater.on('update-not-available', () => setUpdateState({ status: 'none' }));
+  autoUpdater.on('update-available', (info) => setUpdateState({ status: 'available', version: info.version, percent: 0, notes: notesOf(info), lastCheck: Date.now() }));
+  autoUpdater.on('update-not-available', () => setUpdateState({ status: 'none', lastCheck: Date.now() }));
   autoUpdater.on('download-progress', (p) => setUpdateState({ status: 'downloading', percent: Math.round(p.percent) }));
   autoUpdater.on('update-downloaded', (info) => setUpdateState({ status: 'ready', version: info.version, percent: 100 }));
   autoUpdater.on('error', (err) => {
@@ -233,7 +336,6 @@ ipcMain.handle('export-pdf', async (event, suggestedName) => {
 
 // --- Due-date reminders -------------------------------------------------------------------
 // A Windows notification at startup and once a day (from 09:00) when checks are due or overdue.
-const REMINDER_HOUR = 9;
 let lastReminderDay = '';
 
 function localDay(d = new Date()) {
@@ -253,10 +355,11 @@ async function countDueChecks() {
   return { total: res.totalItems, overdue };
 }
 
-async function checkReminders({ force = false } = {}) {
+async function checkReminders({ force = false, manual = false } = {}) {
+  if (!settings.remindersEnabled && !manual) return;
   const now = new Date();
   const day = localDay(now);
-  if (!force && (lastReminderDay === day || now.getHours() < REMINDER_HOUR)) return;
+  if (!force && (lastReminderDay === day || now.getHours() < settings.reminderHour)) return;
   try {
     const { total, overdue } = await countDueChecks();
     lastReminderDay = day;
@@ -291,9 +394,12 @@ function createWindow() {
   });
   win.loadURL(BASE_URL);
   win.on('close', (e) => {
-    if (!quitting) {
+    if (quitting) return;
+    if (settings.keepInTray) {
       e.preventDefault();
       win.hide();
+    } else {
+      app.quit();
     }
   });
 }
@@ -304,19 +410,26 @@ function showWindow() {
   win.focus();
 }
 
-async function exportBackup(folder) {
-  let target = folder;
-  if (!target) {
-    const res = await dialog.showOpenDialog({ title: 'Scegli la cartella per il backup', properties: ['openDirectory', 'createDirectory'] });
+let backupRunning = false;
+
+async function exportBackup(folder, choose = false) {
+  if (backupRunning) return;
+  let target = folder || backupFolderPath();
+  if (choose) {
+    const res = await dialog.showOpenDialog({ title: 'Scegli la cartella per il backup', defaultPath: target, properties: ['openDirectory', 'createDirectory'] });
     if (res.canceled) return;
     target = res.filePaths[0];
   }
-  const stamp = new Date().toISOString().slice(0, 10);
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  const stamp = `${localDay(d)}_${pad(d.getHours())}${pad(d.getMinutes())}`;
   const dest = path.join(target, `workspace-care-backup-${stamp}`);
+  backupRunning = true;
   // Stop the server so the SQLite files are copied in a consistent state.
   await stopPocketBase();
   let outcome;
   try {
+    fs.mkdirSync(target, { recursive: true });
     fs.cpSync(dataDir, dest, { recursive: true });
     outcome = { kind: 'success', title: 'Backup completato', text: dest, path: dest };
   } catch (err) {
@@ -326,6 +439,7 @@ async function exportBackup(folder) {
     await waitForServer();
     // The window is reloaded first, then the message is queued: a message sent before the reload would be lost with the old page.
     if (win) await win.loadURL(BASE_URL).catch(() => {});
+    backupRunning = false;
   }
   sendToast(outcome);
 }
@@ -336,8 +450,8 @@ function createTray() {
   tray.setContextMenu(
     Menu.buildFromTemplate([
       { label: 'Apri Workspace Care', click: showWindow },
-      { label: 'Controlla scadenze ora', click: () => checkReminders({ force: true }) },
-      { label: 'Esporta backup…', click: () => { showWindow(); exportBackup(); } },
+      { label: 'Controlla scadenze ora', click: () => checkReminders({ force: true, manual: true }) },
+      { label: 'Fai un backup ora', click: () => { showWindow(); exportBackup(); } },
       { label: 'Controlla aggiornamenti', click: () => { showWindow(); checkForUpdates(); } },
       { type: 'separator' },
       { label: 'Esci', click: () => app.quit() },
@@ -353,7 +467,7 @@ if (!app.requestSingleInstanceLock()) {
 
   app.whenReady().then(async () => {
     app.setAppUserModelId('it.workspacecare.app'); // needed for Windows notifications
-    if (!isDev) app.setLoginItemSettings({ openAtLogin: true });
+    applyLoginItem();
     startPocketBase();
     try {
       await waitForServer();
@@ -366,8 +480,8 @@ if (!app.requestSingleInstanceLock()) {
     createTray();
     createWindow();
     setupUpdater();
-    setTimeout(checkForUpdates, 20 * 1000);
-    setInterval(checkForUpdates, UPDATE_CHECK_MS);
+    setTimeout(() => settings.autoUpdateCheck && checkForUpdates(), 20 * 1000);
+    setInterval(() => settings.autoUpdateCheck && checkForUpdates(), UPDATE_CHECK_MS);
     // Startup reminder (any hour), then a check every 30 minutes for the daily 09:00 one.
     checkReminders({ force: true });
     setInterval(checkReminders, 30 * 60 * 1000);

@@ -9,12 +9,14 @@ export interface UpdateState {
   message: string;
   /** Release notes (plain lines) from the GitHub release. */
   notes: string[];
+  /** When the last check finished, ms since 1970 (0: not yet). */
+  lastCheck: number;
 }
 
 /** In-app updates, driven by the Electron main process (see desktop/main.js). Does nothing outside Electron. */
 @Injectable({ providedIn: 'root' })
 export class UpdateService {
-  readonly state = signal<UpdateState>({ status: 'idle', version: '', percent: 0, message: '', notes: [] });
+  readonly state = signal<UpdateState>({ status: 'idle', version: '', percent: 0, message: '', notes: [], lastCheck: 0 });
   /** "Più tardi": hides the banner for this version until the app is restarted. */
   private readonly dismissedVersion = signal('');
 
@@ -27,8 +29,8 @@ export class UpdateService {
   constructor() {
     const bridge = window.workspaceCare;
     if (!bridge?.onUpdateState) return;
-    void bridge.getUpdateState?.().then((s) => this.state.set({ notes: [], ...s }));
-    bridge.onUpdateState((s) => this.state.set({ notes: [], ...s }));
+    void bridge.getUpdateState?.().then((s) => this.state.set({ notes: [], lastCheck: 0, ...s }));
+    bridge.onUpdateState((s) => this.state.set({ notes: [], lastCheck: 0, ...s }));
   }
 
   download(): void {
@@ -41,6 +43,11 @@ export class UpdateService {
 
   later(): void {
     this.dismissedVersion.set(this.state().version);
+  }
+
+  /** "Controlla ora" of the Impostazioni page. */
+  check(): void {
+    void window.workspaceCare?.checkForUpdates?.();
   }
 
   retry(): void {

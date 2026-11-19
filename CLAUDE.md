@@ -64,6 +64,12 @@ Acquisti: fascia budget con speso / ordinato da pagare / stima ancora da decider
 Altre pagine: Dashboard.
 Il PDF si genera dalla pagina `#/riepilogo` con `webContents.printToPDF` di Electron (stile `@media print`).
 
+## Impostazioni (design «Lista e dettaglio»)
+- Voce «Impostazioni» in fondo alla rail (solo nell'app desktop), pagina `#/impostazioni?sezione=generale|notifiche|backup|aggiornamenti|informazioni` (`pages/settings`), master-detail, salvataggio automatico con «Salvato». Pallino arancione sulla voce se l'ultimo backup è vecchio di 7+ giorni o manca.
+- Le preferenze del desktop stanno in `settings.json` nella cartella dati di Electron (`desktop/main.js`: `settings`, `saveSettings`, IPC `settings-get/-set`, `backup-list`, `backup-choose-folder`, `open-folder`): avvio con Windows, resta nella tray alla chiusura, promemoria (sì/no e ora), cartella dei backup, controllo aggiornamenti automatico, nome per il saluto. Lato Angular: `services/settings.service.ts` e `models/settings.ts`.
+- Backup: «Fai un backup ora» (anche dalla tray) scrive una cartella `workspace-care-backup-AAAA-MM-GG_HHMM` nella cartella configurata (predefinita: Documenti\Backup Workspace Care), senza dialog; l'elenco «Backup fatti» legge quella cartella.
+- Non ancora fatto (seconda parte): backup automatico, ripristino, budget, persone, notifiche extra.
+
 ## Popup (design «Nel pannello»)
 - Niente `window.confirm` né dialog Material: ogni conferma passa da `services/confirm.service.ts` (`ask` per eliminazioni e sì/no, `choose` per la scelta del link). Il riquadro (`core/ui/confirm-box.ts`) compare accanto all'elemento che l'ha richiesto — dentro `.md-detail`, sotto il modulo in linea o la riga — e blocca (`inert`) la parte di pagina a cui appartiene; Esc annulla e il focus torna al pulsante di partenza. Sotto i 480 px diventa un foglio dal basso.
 - Esiti: `services/toast.service.ts` + `core/ui/toast-host.ts` (in basso al centro; il positivo sparisce dopo 6 s, l'errore resta). Il main process invia al renderer l'esito del backup (`sendToast`, coda `toast-take` / evento `toast-ready`), così non resta nessuna finestra di Electron tranne i selettori di Windows (Salva con nome, Scegli cartella) e gli errori all'avvio.

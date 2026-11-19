@@ -415,3 +415,14 @@ Provati su una copia di prova accanto all'app installata (porta 8091, cartella d
 - PASS (finestra Electron vera, backup via IPC): l'esito compare nell'app dopo il ricaricamento della finestra, sia «Backup completato» sia «Backup non riuscito» con una cartella inesistente. Un primo tentativo inviava l'avviso prima del ricaricamento e lo perdeva: corretto.
 - PASS: le note della release (HTML o elenchi) diventano righe di testo semplice (funzione `notesOf`).
 - Non provato: la striscia di aggiornamento con le novità a schermo, il pulsante «Apri cartella» nella finestra vera, la voce «Esporta backup…» della tray.
+
+## Aggiornamento del 19 novembre: pagina Impostazioni (prima parte)
+
+Provata sulla finestra Electron vera di una copia separata (porta 8091, cartella dati temporanea, comandi via DevTools), senza toccare l'app installata.
+
+- PASS: voce in fondo alla rail e pagina con cinque sezioni; ogni voce della lista ha la sua riga di stato.
+- PASS: il nome si salva da solo («Salvato») in `settings.json` e compare nel saluto («Buon pomeriggio Andrea»).
+- PASS: «Chiudendo la finestra resta attiva» e il promemoria si salvano e aggiornano la lista; con il promemoria spento il selettore dell'ora si disattiva; l'ora cambia (09:00 → 14:00).
+- PASS: backup: avviso giallo e pallino arancione (sia sulla voce sia sulla rail) quando non c'è nessun backup; «Fai un backup ora» crea la cartella con data e ora, l'elenco mostra data, dimensione (1,4 MB) e «Manuale», avviso e pallino spariscono, la riga dice «Ultimo: oggi».
+- PASS: a 375 px nessun overflow; lista sopra e dettaglio sotto.
+- Non provato: «Avvia con Windows» (nel programma lanciato da sorgente l'interruttore è disattivo: funziona solo nell'app installata), la chiusura della finestra con «resta attiva» spento, «Controlla ora» (non fa nulla da sorgente), «Cambia…» con la finestra di scelta della cartella, il promemoria all'ora scelta.

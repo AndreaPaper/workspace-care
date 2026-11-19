@@ -4,6 +4,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
 import { BadgesService } from '../../services/badges.service';
+import { SettingsService } from '../../services/settings.service';
 import { GlobalSearch } from '../search/global-search';
 import { ToastHost } from '../ui/toast-host';
 import { UpdateBanner } from '../ui/update-banner';
@@ -53,6 +54,17 @@ interface NavItem {
           {{ item.label }}
         </a>
       }
+
+      @if (settings.available) {
+        <span class="divider" aria-hidden="true"></span>
+        <a class="item" routerLink="/impostazioni" routerLinkActive="active" [attr.aria-label]="settings.backupStale() ? 'Impostazioni, richiede attenzione' : null">
+          <span class="ico">
+            <mat-icon aria-hidden="true">settings</mat-icon>
+            @if (settings.backupStale()) { <span class="badge attention" aria-hidden="true"></span> }
+          </span>
+          Impostazioni
+        </a>
+      }
     </nav>
 
     <div class="content">
@@ -81,6 +93,7 @@ interface NavItem {
     .badge { position: absolute; top: -2px; right: 6px; min-width: 18px; height: 18px; padding: 0 4px; box-sizing: border-box; border-radius: 999px; background: #8a5a00; color: #fff; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
     .badge.late { background: #b42318; }
     .badge.ok { background: #2e6a4f; }
+    .badge.attention { min-width: 10px; width: 10px; height: 10px; padding: 0; top: 0; right: 14px; background: #e8850c; }
     .divider { width: 48px; height: 1px; margin: 8px 12px; background: #e6e2d9; flex: none; }
     .content { flex: 1; min-width: 0; box-sizing: border-box; padding: 20px 40px 40px; display: flex; flex-direction: column; gap: 22px; }
     main { min-width: 0; }
@@ -98,6 +111,7 @@ interface NavItem {
 export class Shell implements OnInit {
   private readonly router = inject(Router);
   readonly badges = inject(BadgesService);
+  readonly settings = inject(SettingsService);
 
   readonly main: NavItem[] = [
     { label: 'Oggi', icon: 'home', path: '/dashboard' },
@@ -115,6 +129,7 @@ export class Shell implements OnInit {
 
   ngOnInit(): void {
     void this.badges.refresh();
+    void this.settings.init();
     this.router.events.pipe(filter((e) => e instanceof NavigationEnd)).subscribe(() => void this.badges.refresh());
   }
 

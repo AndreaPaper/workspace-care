@@ -62,7 +62,7 @@ export class ToastService {
       this.error(t.title, {
         text: t.text,
         actions: [
-          { label: 'Altra cartella', run: () => void bridge?.exportBackup?.() },
+          { label: 'Altra cartella', run: () => void bridge?.exportBackup?.(undefined, true) },
           ...(folder ? [{ label: 'Riprova', run: () => void bridge?.exportBackup?.(folder) }] : []),
         ],
       });

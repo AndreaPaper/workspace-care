@@ -7,6 +7,7 @@ import { ControlsService } from '../../services/controls.service';
 import { diffDays, longDay, shortDay, todayDay, toDay, weekdayName } from '../../services/dates';
 import { IdeasService } from '../../services/ideas.service';
 import { PurchasesService } from '../../services/purchases.service';
+import { SettingsService } from '../../services/settings.service';
 import { RequestsService } from '../../services/requests.service';
 
 type PriorityFilter = 'tutte' | IdeaPriority | 'nessuna';
@@ -30,7 +31,7 @@ const FREQUENCY: Record<string, string> = {
     <header class="head">
       <div class="title">
         <span class="date">{{ dateLine }}</span>
-        <h1>{{ greeting }}</h1>
+        <h1>{{ greeting }}{{ name() ? ' ' + name() : '' }}</h1>
         <span class="summary">{{ summary() }}</span>
       </div>
       <div class="quick">
@@ -288,6 +289,9 @@ export class Dashboard implements OnInit {
 
   private readonly today = todayDay();
   readonly dateLine = longDay(this.today).replace(/^./, (c) => c.toUpperCase());
+  private readonly settingsService = inject(SettingsService);
+  /** The name set in Impostazioni, for the greeting. */
+  readonly name = computed(() => this.settingsService.settings()?.userName ?? '');
   readonly greeting = (() => {
     const h = new Date().getHours();
     return h < 13 ? 'Buongiorno' : h < 18 ? 'Buon pomeriggio' : 'Buonasera';

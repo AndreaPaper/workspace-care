@@ -11,7 +11,12 @@ contextBridge.exposeInMainWorld('workspaceCare', {
     return () => ipcRenderer.removeListener('toast-ready', listener);
   },
   showInFolder: (target) => ipcRenderer.invoke('show-in-folder', target),
-  exportBackup: (folder) => ipcRenderer.invoke('export-backup', folder),
+  exportBackup: (folder, choose) => ipcRenderer.invoke('export-backup', folder, choose),
+  getSettings: () => ipcRenderer.invoke('settings-get'),
+  setSettings: (patch) => ipcRenderer.invoke('settings-set', patch),
+  listBackups: () => ipcRenderer.invoke('backup-list'),
+  chooseBackupFolder: () => ipcRenderer.invoke('backup-choose-folder'),
+  openFolder: (which) => ipcRenderer.invoke('open-folder', which),
   getUpdateState: () => ipcRenderer.invoke('update-state'),
   checkForUpdates: () => ipcRenderer.invoke('update-check'),
   downloadUpdate: () => ipcRenderer.invoke('update-download'),

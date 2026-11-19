@@ -27,6 +27,7 @@ export const routes: Routes = [
       { path: 'cassettiere', redirectTo: toOffice('cassettiere') },
       { path: 'regole/cartello', loadComponent: () => import('./pages/rules/rule-sign').then((m) => m.RuleSign) },
       { path: 'regole', loadComponent: () => import('./pages/rules/rules').then((m) => m.Rules) },
+      { path: 'impostazioni', loadComponent: () => import('./pages/settings/settings').then((m) => m.Settings) },
       { path: 'riepilogo', loadComponent: () => import('./pages/report/report').then((m) => m.Report) },
       { path: 'aree', redirectTo: toOffice('aree') },
     ],

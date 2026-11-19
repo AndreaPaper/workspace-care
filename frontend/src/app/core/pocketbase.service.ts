@@ -1,5 +1,6 @@
 import { Injectable, isDevMode, signal } from '@angular/core';
 import PocketBase, { RecordModel } from 'pocketbase';
+import type { BackupInfo, DesktopSettings } from '../models/settings';
 
 declare global {
   interface Window {
@@ -9,12 +10,18 @@ declare global {
       /** Opens a save dialog and writes the current page as a PDF. Resolves to the saved path, or null if cancelled. */
       exportPdf?(suggestedName: string): Promise<string | null>;
       /** In-app updates (see services/update.service.ts). */
-      getUpdateState?(): Promise<{ status: 'idle' | 'checking' | 'none' | 'available' | 'downloading' | 'ready' | 'error'; version: string; percent: number; message: string; notes?: string[] }>;
+      getUpdateState?(): Promise<{ status: 'idle' | 'checking' | 'none' | 'available' | 'downloading' | 'ready' | 'error'; version: string; percent: number; message: string; notes?: string[]; lastCheck?: number }>;
       /** Messages from the main process (backup result), see services/toast.service.ts. */
       takeToasts?(): Promise<{ kind: 'success' | 'error'; title: string; text?: string; path?: string; folder?: string }[]>;
       onToastReady?(callback: () => void): () => void;
       showInFolder?(target: string): Promise<void>;
-      exportBackup?(folder?: string): Promise<void>;
+      exportBackup?(folder?: string, choose?: boolean): Promise<void>;
+      /** Desktop preferences (Impostazioni page). */
+      getSettings?(): Promise<DesktopSettings>;
+      setSettings?(patch: Partial<DesktopSettings>): Promise<DesktopSettings>;
+      listBackups?(): Promise<BackupInfo[]>;
+      chooseBackupFolder?(): Promise<DesktopSettings>;
+      openFolder?(which: 'data' | 'backup'): Promise<void>;
       checkForUpdates?(): Promise<void>;
       downloadUpdate?(): Promise<void>;
       installUpdate?(): Promise<void>;
