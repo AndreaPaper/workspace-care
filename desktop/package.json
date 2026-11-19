@@ -1,6 +1,6 @@
 {
   "name": "workspace-care",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Workspace Care",
   "main": "main.js",
   "private": true,
