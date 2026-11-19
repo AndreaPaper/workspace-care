@@ -1,4 +1,5 @@
-import { Routes } from '@angular/router';
+import { inject } from '@angular/core';
+import { Router, Routes } from '@angular/router';
 import { authGuard } from './core/auth.guard';
 
 export const routes: Routes = [
@@ -11,7 +12,8 @@ export const routes: Routes = [
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
       { path: 'dashboard', loadComponent: () => import('./pages/dashboard/dashboard').then((m) => m.Dashboard) },
       { path: 'idee', loadComponent: () => import('./pages/ideas/ideas').then((m) => m.Ideas) },
-      { path: 'idee/:id', loadComponent: () => import('./pages/idea-detail/idea-detail').then((m) => m.IdeaDetail) },
+      // Old links to a single idea keep working: the idea is now selected inside the Idee page.
+      { path: 'idee/:id', redirectTo: ({ params }) => inject(Router).parseUrl('/idee?id=' + params['id']) },
       { path: 'richieste', loadComponent: () => import('./pages/requests/requests').then((m) => m.Requests) },
       { path: 'controlli', loadComponent: () => import('./pages/controls/controls').then((m) => m.Controls) },
       { path: 'acquisti', loadComponent: () => import('./pages/purchases/purchases').then((m) => m.Purchases) },

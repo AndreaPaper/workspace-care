@@ -32,7 +32,7 @@ import { SearchHit, SearchService } from '../../services/search.service';
             @for (g of groups(); track g.type) {
               <span class="group">{{ g.type }}</span>
               @for (h of g.hits; track h.title + h.detail) {
-                <a class="hit" [routerLink]="h.link" [queryParams]="h.withQuery ? { q: query().trim() } : null" (click)="clear()">
+                <a class="hit" [routerLink]="h.link" [queryParams]="params(h)" (click)="clear()">
                   <mat-icon aria-hidden="true">{{ h.icon }}</mat-icon>
                   <span class="txt"><strong>{{ h.title }}</strong><small>{{ h.detail }}</small></span>
                 </a>
@@ -104,6 +104,11 @@ export class GlobalSearch {
     }, 250);
   }
 
+  /** Query parameters of a result: the item to select, or the search text for the pages without selection. */
+  params(h: SearchHit): Record<string, string> | null {
+    return h.params ?? (h.withQuery ? { q: this.query().trim() } : null);
+  }
+
   clear(): void {
     this.ticket++;
     clearTimeout(this.timer);
@@ -115,8 +120,7 @@ export class GlobalSearch {
   openFirst(): void {
     const first = this.hits()[0];
     if (!first) return;
-    const q = this.query().trim();
-    void this.router.navigate(first.link, first.withQuery ? { queryParams: { q } } : {});
+    void this.router.navigate(first.link, { queryParams: this.params(first) ?? undefined });
     this.clear();
   }
 

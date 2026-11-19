@@ -16,7 +16,12 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 const OPEN_REQUEST = ['ricevuta', 'in_valutazione', 'in_corso'];
 /** With the "Tutte" filter the list shows this many ideas before "Mostra le altre". */
 const COLLAPSED_IDEAS = 5;
-const FREQUENCY: Record<string, string> = { settimanale: 'Ogni settimana', mensile: 'Ogni mese', trimestrale: 'Ogni 3 mesi' };
+const FREQUENCY: Record<string, string> = {
+  settimanale: 'Ogni settimana',
+  bisettimanale: 'Ogni 2 settimane',
+  mensile: 'Ogni mese',
+  trimestrale: 'Ogni 3 mesi',
+};
 
 @Component({
   selector: 'app-dashboard',
@@ -111,7 +116,7 @@ const FREQUENCY: Record<string, string> = { settimanale: 'Ogni settimana', mensi
             @for (g of groups().groups; track g.key) {
               <span [class]="'eyebrow ' + g.key">{{ g.label }} · {{ byPriority()[g.key].length }}</span>
               @for (i of g.items; track i.id) {
-                <a class="idea" [routerLink]="['/idee', i.id]">
+                <a class="idea" routerLink="/idee" [queryParams]="{ id: i.id }">
                   <span [class]="'dot ' + g.key"></span>
                   <span class="grow"><strong>{{ i.titolo }}</strong><span class="sub">{{ areaOf(i) }}{{ areaOf(i) ? ' · ' : '' }}{{ sinceLabel(i) }}</span></span>
                 </a>

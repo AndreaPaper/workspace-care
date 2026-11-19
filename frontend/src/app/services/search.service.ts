@@ -9,6 +9,8 @@ export interface SearchHit {
   /** Router link; the search text is passed on as ?q= to the list pages. */
   link: string[];
   withQuery: boolean;
+  /** Extra query parameters, e.g. the id of the item to select. */
+  params?: Record<string, string>;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -27,9 +29,9 @@ export class SearchService {
     ]);
     const area = (r: { expand?: { area?: { nome?: string } } }) => r.expand?.area?.nome ?? '';
     return [
-      ...ideas.items.map((r): SearchHit => ({ type: 'Idee', icon: 'lightbulb', title: r['titolo'], detail: area(r), link: ['/idee', r.id], withQuery: false })),
-      ...requests.items.map((r): SearchHit => ({ type: 'Richieste', icon: 'inbox', title: r['titolo'], detail: r['richiedente'] || area(r), link: ['/richieste'], withQuery: true })),
-      ...purchases.items.map((r): SearchHit => ({ type: 'Acquisti', icon: 'shopping_cart', title: r['articolo'], detail: r['fornitore'] || area(r), link: ['/acquisti'], withQuery: true })),
+      ...ideas.items.map((r): SearchHit => ({ type: 'Idee', icon: 'lightbulb', title: r['titolo'], detail: area(r), link: ['/idee'], withQuery: false, params: { id: r.id } })),
+      ...requests.items.map((r): SearchHit => ({ type: 'Richieste', icon: 'inbox', title: r['titolo'], detail: r['richiedente'] || area(r), link: ['/richieste'], withQuery: false, params: { id: r.id } })),
+      ...purchases.items.map((r): SearchHit => ({ type: 'Acquisti', icon: 'shopping_cart', title: r['articolo'], detail: r['fornitore'] || area(r), link: ['/acquisti'], withQuery: false, params: { id: r.id } })),
       ...items.items.map((r): SearchHit => ({ type: 'Inventario', icon: 'inventory_2', title: r['nome'], detail: r['posizione'] || area(r), link: ['/inventario'], withQuery: true })),
       ...rules.items.map((r): SearchHit => ({ type: 'Regole', icon: 'menu_book', title: String(r['testo']).slice(0, 70), detail: r['tema'], link: ['/regole'], withQuery: false })),
     ];
