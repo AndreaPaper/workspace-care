@@ -228,7 +228,7 @@ async function exportBackup() {
 }
 
 function createTray() {
-  tray = new Tray(nativeImage.createFromPath(path.join(__dirname, 'icon.png')));
+  tray = new Tray(nativeImage.createFromPath(path.join(__dirname, 'icon.png')).resize({ width: 32, height: 32 }));
   tray.setToolTip('Workspace Care');
   tray.setContextMenu(
     Menu.buildFromTemplate([
