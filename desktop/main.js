@@ -1,7 +1,7 @@
 // Electron main process: runs PocketBase locally, serves the Angular build from it,
 // and keeps the app in the system tray so it is always available.
 const { app, BrowserWindow, Tray, Menu, dialog, nativeImage, ipcMain, Notification, shell } = require('electron');
-const { spawn } = require('child_process');
+const { spawn, spawnSync } = require('child_process');
 const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
@@ -25,8 +25,22 @@ let tray = null;
 let quitting = false;
 let stoppedOnPurpose = false;
 
+/**
+ * Without any superuser PocketBase opens the browser on its "create your first superuser" page at every start.
+ * An internal superuser with a random password nobody keeps stops that (the dashboard is not used; a new password
+ * can be set with `pocketbase superuser upsert` if it is ever needed).
+ */
+function ensureSuperuser() {
+  const password = crypto.randomBytes(24).toString('hex');
+  spawnSync(pbExe, ['superuser', 'upsert', 'admin@workspace-care.local', password, `--dir=${dataDir}`, `--migrationsDir=${migrationsDir}`], {
+    windowsHide: true,
+    timeout: 30000,
+  });
+}
+
 function startPocketBase() {
   fs.mkdirSync(dataDir, { recursive: true });
+  ensureSuperuser();
   pb = spawn(
     pbExe,
     ['serve', `--http=127.0.0.1:${PORT}`, `--dir=${dataDir}`, `--migrationsDir=${migrationsDir}`, `--hooksDir=${hooksDir}`, `--publicDir=${publicDir}`],
