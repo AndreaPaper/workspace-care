@@ -363,3 +363,12 @@ Inventario, Cassettiere e Aree sono ora tre schede di `#/ufficio`; i casi B e I 
 - PASS: layout a due colonne a 1440 px, colonna unica senza overflow a 375 px.
 - PASS (caso J3 rieseguito dalla finestra reale, con 22 idee e 14 acquisti): il PDF ha 2 pagine A4 e contiene solo il foglio (niente impostazioni), numeri chiave e righe di apertura inclusi.
 - Nota: la stima «circa N pagine» si aggiorna solo con la finestra visibile; è approssimata (qui 2 stimate, 2 reali).
+
+## Aggiornamento del 19 novembre: Inventario a contenitori
+
+- PASS: migrazione `1700000010_contenitori.js` su database pulito (collezione `contenitori`, campo `contenitore` in `inventario`).
+- PASS: riga di testa con conteggi, area per area, riquadri per contenitore, «Senza contenitore» con «Metti in…», oggetti e contenitori senza area in fondo.
+- PASS: nuovo contenitore, nuovo oggetto dentro un contenitore (area ereditata), modifica in linea, eliminazione di un contenitore con oggetti (messaggio chiaro, gli oggetti restano senza contenitore), `?q=` filtra gli oggetti.
+- PASS: nessun overflow e nessun errore Angular in console a 375 px.
+- PASS: API anonima sulla nuova collezione: lista vuota, scrittura rifiutata (400).
+- Non provato: eliminare un'area che contiene contenitori (stesso comportamento delle altre relazioni verso `aree`).

@@ -180,9 +180,19 @@ export type RuleStatus = 'da_definire' | 'bozza' | 'attiva';
 export interface InventoryItem extends RecordModel {
   nome: string;
   area: string;
+  /** Where inside the container (shelf, drawer…). */
   posizione: string;
   note: string;
+  /** Optional container (cabinet, box…); empty when the item is loose in its area. */
+  contenitore: string;
   expand?: { area?: Area };
+}
+
+/** A cabinet, a box or a shelf unit that holds inventory items. */
+export interface Container extends RecordModel {
+  nome: string;
+  area: string;
+  descrizione: string;
 }
 
 export interface Drawer extends RecordModel {
