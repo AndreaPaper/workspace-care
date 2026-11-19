@@ -3,6 +3,10 @@
 // New link: fetch the page and fill the preview before the record is saved,
 // so the API response already contains title, site, price and image.
 onRecordCreateRequest((e) => {
+  // Only web pages make sense as links; reject ftp:, file: and other schemes up front.
+  if (!/^https?:\/\//i.test(e.record.getString('url'))) {
+    throw new BadRequestError('Il link deve iniziare con http:// o https://');
+  }
   const preview = require(`${__hooks}/lib/preview.js`);
   preview.fillPreview(e.record);
   e.next();
