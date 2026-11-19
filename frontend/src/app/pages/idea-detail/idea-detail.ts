@@ -131,6 +131,9 @@ import { LinkChoiceDialog } from './link-choice-dialog';
           <input type="file" accept="image/*" multiple hidden (change)="addPhotos($event)" />
         </label>
       </div>
+    } @else if (notFound()) {
+      <a routerLink="/idee" class="back"><mat-icon>arrow_back</mat-icon> Idee</a>
+      <p class="muted">Idea non trovata: potrebbe essere stata eliminata.</p>
     } @else {
       <p>Caricamento…</p>
     }
@@ -172,6 +175,7 @@ export class IdeaDetail implements OnInit {
   readonly addingLink = signal(false);
   readonly purchases = signal<Purchase[]>([]);
   readonly converting = signal(false);
+  readonly notFound = signal(false);
 
   readonly categories = IDEA_CATEGORIES;
   readonly statuses = IDEA_STATUSES;
@@ -180,24 +184,34 @@ export class IdeaDetail implements OnInit {
   imageUrls: Record<string, string> = {};
 
   async ngOnInit(): Promise<void> {
-    const [idea, links, areas, purchases] = await Promise.all([
-      this.ideas.get(this.id()),
-      this.linksService.listByIdea(this.id()),
-      this.areasService.list(),
-      this.purchasesService.byIdea(this.id()),
-    ]);
-    this.purchases.set(purchases);
-    this.idea.set(idea);
-    this.links.set(links);
-    this.areas.set(areas);
+    try {
+      const [idea, links, areas, purchases] = await Promise.all([
+        this.ideas.get(this.id()),
+        this.linksService.listByIdea(this.id()),
+        this.areasService.list(),
+        this.purchasesService.byIdea(this.id()),
+      ]);
+      this.purchases.set(purchases);
+      this.idea.set(idea);
+      this.links.set(links);
+      this.areas.set(areas);
+    } catch {
+      this.notFound.set(true);
+    }
   }
 
   async save(data: Partial<Idea>): Promise<void> {
     const current = this.idea();
     if (!current) return;
-    const updated = await this.ideas.update(current.id, data);
-    Object.assign(current, { stato: updated.stato, expand: updated.expand });
-    this.idea.set({ ...current });
+    try {
+      const updated = await this.ideas.update(current.id, data);
+      Object.assign(current, { stato: updated.stato, expand: updated.expand });
+      this.idea.set({ ...current });
+    } catch {
+      // e.g. a negative cost: tell the user and show the stored values again.
+      alert('Salvataggio non riuscito: controlla i valori inseriti.');
+      this.idea.set(await this.ideas.get(current.id));
+    }
   }
 
   purchaseStatus(p: Purchase): string {
@@ -206,6 +220,7 @@ export class IdeaDetail implements OnInit {
 
   /** Creates the purchase on the server; with several links the user picks the one to copy. */
   async convert(): Promise<void> {
+    if (this.converting()) return;
     let linkId: string | undefined;
     if (this.links().length > 1) {
       linkId = await new Promise<string | undefined>((resolve) =>
@@ -243,6 +258,7 @@ export class IdeaDetail implements OnInit {
   }
 
   async addLink(): Promise<void> {
+    if (this.addingLink() || !this.newUrl.trim()) return;
     this.addingLink.set(true);
     try {
       const link = await this.linksService.create(this.id(), this.newUrl.trim());

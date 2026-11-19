@@ -82,8 +82,14 @@ export class Areas implements OnInit {
   }
 
   async add(): Promise<void> {
-    await this.areasService.create(this.newName.trim());
-    this.newName = '';
+    this.error.set('');
+    const name = this.newName.trim();
+    try {
+      await this.areasService.create(name);
+      this.newName = '';
+    } catch {
+      this.error.set(`Impossibile aggiungere "${name}": esiste già un'area con questo nome.`);
+    }
     await this.reload();
   }
 
@@ -95,7 +101,17 @@ export class Areas implements OnInit {
   }
 
   async saveEdit(area: Area): Promise<void> {
-    if (this.editName.trim()) await this.areasService.rename(area.id, this.editName.trim());
+    this.error.set('');
+    const name = this.editName.trim();
+    if (name && name !== area.nome) {
+      try {
+        await this.areasService.rename(area.id, name);
+      } catch {
+        // Keep the field open so the name can be corrected.
+        this.error.set(`Impossibile rinominare in "${name}": esiste già un'area con questo nome.`);
+        return;
+      }
+    }
     this.editingId.set('');
     await this.reload();
   }
