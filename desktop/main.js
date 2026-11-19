@@ -7,7 +7,8 @@ const path = require('path');
 const fs = require('fs');
 const http = require('http');
 
-const PORT = 8090;
+// WC_PORT lets a test copy run next to the installed app (together with --user-data-dir).
+const PORT = Number(process.env.WC_PORT) || 8090;
 const BASE_URL = `http://127.0.0.1:${PORT}`;
 const isDev = !app.isPackaged;
 
@@ -32,7 +33,36 @@ let stoppedOnPurpose = false;
 // overrides the source, for tests.
 const UPDATE_CHECK_MS = 6 * 60 * 60 * 1000;
 let autoUpdater = null;
-let updateState = { status: 'idle', version: '', percent: 0, message: '' };
+let updateState = { status: 'idle', version: '', percent: 0, message: '', notes: [] };
+
+// Messages for the app (shown as toasts). They are queued, because the window may be reloading when they are sent.
+const pendingToasts = [];
+function sendToast(toast) {
+  pendingToasts.push(toast);
+  if (win && !win.isDestroyed()) win.webContents.send('toast-ready');
+}
+ipcMain.handle('toast-take', () => pendingToasts.splice(0));
+ipcMain.handle('show-in-folder', (_event, target) => {
+  if (typeof target === 'string') shell.showItemInFolder(target);
+});
+ipcMain.handle('export-backup', (_event, folder) => exportBackup(typeof folder === 'string' ? folder : undefined));
+
+/** Release notes from the GitHub release, as plain lines (list items or text lines). */
+function notesOf(info) {
+  const raw = Array.isArray(info.releaseNotes) ? info.releaseNotes.map((n) => n.note).join('\n') : String(info.releaseNotes || '');
+  return raw
+    .replace(/<\/(li|p|div|h\d)>|<br\s*\/?>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .split('\n')
+    .map((l) => l.replace(/^\s*[-*•]\s*/, '').trim())
+    .filter(Boolean)
+    .slice(0, 8);
+}
 
 function setUpdateState(patch) {
   updateState = { ...updateState, ...patch };
@@ -47,7 +77,7 @@ function setupUpdater() {
   autoUpdater.autoInstallOnAppQuit = true;
   if (feed) autoUpdater.setFeedURL({ provider: 'generic', url: feed });
   autoUpdater.on('checking-for-update', () => setUpdateState({ status: 'checking', message: '' }));
-  autoUpdater.on('update-available', (info) => setUpdateState({ status: 'available', version: info.version, percent: 0 }));
+  autoUpdater.on('update-available', (info) => setUpdateState({ status: 'available', version: info.version, percent: 0, notes: notesOf(info) }));
   autoUpdater.on('update-not-available', () => setUpdateState({ status: 'none' }));
   autoUpdater.on('download-progress', (p) => setUpdateState({ status: 'downloading', percent: Math.round(p.percent) }));
   autoUpdater.on('update-downloaded', (info) => setUpdateState({ status: 'ready', version: info.version, percent: 100 }));
@@ -274,23 +304,30 @@ function showWindow() {
   win.focus();
 }
 
-async function exportBackup() {
-  const res = await dialog.showOpenDialog({ title: 'Scegli la cartella per il backup', properties: ['openDirectory', 'createDirectory'] });
-  if (res.canceled) return;
+async function exportBackup(folder) {
+  let target = folder;
+  if (!target) {
+    const res = await dialog.showOpenDialog({ title: 'Scegli la cartella per il backup', properties: ['openDirectory', 'createDirectory'] });
+    if (res.canceled) return;
+    target = res.filePaths[0];
+  }
   const stamp = new Date().toISOString().slice(0, 10);
-  const dest = path.join(res.filePaths[0], `workspace-care-backup-${stamp}`);
+  const dest = path.join(target, `workspace-care-backup-${stamp}`);
   // Stop the server so the SQLite files are copied in a consistent state.
   await stopPocketBase();
+  let outcome;
   try {
     fs.cpSync(dataDir, dest, { recursive: true });
-    dialog.showMessageBox({ message: 'Backup completato.', detail: dest });
+    outcome = { kind: 'success', title: 'Backup completato', text: dest, path: dest };
   } catch (err) {
-    dialog.showErrorBox('Backup non riuscito', String(err));
+    outcome = { kind: 'error', title: 'Backup non riuscito', text: String((err && err.message) || err), folder: target };
   } finally {
     startPocketBase();
     await waitForServer();
-    if (win) win.loadURL(BASE_URL);
+    // The window is reloaded first, then the message is queued: a message sent before the reload would be lost with the old page.
+    if (win) await win.loadURL(BASE_URL).catch(() => {});
   }
+  sendToast(outcome);
 }
 
 function createTray() {
@@ -300,7 +337,7 @@ function createTray() {
     Menu.buildFromTemplate([
       { label: 'Apri Workspace Care', click: showWindow },
       { label: 'Controlla scadenze ora', click: () => checkReminders({ force: true }) },
-      { label: 'Esporta backup…', click: exportBackup },
+      { label: 'Esporta backup…', click: () => { showWindow(); exportBackup(); } },
       { label: 'Controlla aggiornamenti', click: () => { showWindow(); checkForUpdates(); } },
       { type: 'separator' },
       { label: 'Esci', click: () => app.quit() },

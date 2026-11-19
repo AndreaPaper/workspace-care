@@ -5,6 +5,7 @@ import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } fro
 import { filter } from 'rxjs';
 import { BadgesService } from '../../services/badges.service';
 import { GlobalSearch } from '../search/global-search';
+import { ToastHost } from '../ui/toast-host';
 import { UpdateBanner } from '../ui/update-banner';
 
 interface NavItem {
@@ -16,7 +17,7 @@ interface NavItem {
 
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, MatIconModule, MatMenuModule, GlobalSearch, UpdateBanner],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, MatIconModule, MatMenuModule, GlobalSearch, UpdateBanner, ToastHost],
   template: `
     <nav class="rail" aria-label="Navigazione principale">
       <a class="logo" routerLink="/dashboard" aria-label="Workspace Care, vai a Oggi"><img src="logo.png" alt="" width="44" height="44" /></a>
@@ -58,6 +59,7 @@ interface NavItem {
       <app-update-banner />
       <app-global-search />
       <main><router-outlet /></main>
+      <app-toast-host />
     </div>
   `,
   styles: `

@@ -402,3 +402,16 @@ Provati con l'app installata (0.1.0) e una 0.1.1 offerta da un server locale (`W
 - PASS: «Riavvia e installa» ferma il server, installa e riavvia da solo: versione 0.1.1, un solo PocketBase, server sano, stesso account (nessun nuovo setup), una sola voce di avvio automatico.
 - PASS: il nome del file dell'installer coincide con quello scritto in `latest.yml` (con il nome predefinito, spazi contro trattini, l'aggiornamento avrebbe dato errore 404).
 - Non provato: il percorso reale tramite una release GitHub (il repository non esiste ancora), il banner con un errore di download, la voce «Controlla aggiornamenti» della tray, l'aggiornamento differenziale (il server di prova non supporta le richieste a intervalli: ha scaricato il file intero).
+
+## Aggiornamento del 19 novembre: popup «Nel pannello»
+
+Provati su una copia di prova accanto all'app installata (porta 8091, cartella dati temporanea).
+
+- PASS: tutte le conferme passano dal nuovo riquadro e hanno il ruolo giusto (`alertdialog` per le eliminazioni, `dialog` per la scelta): regola, richiesta, controllo (con elenco «storico»), cassettiera (con elenco «4 cassetti, di cui 2 assegnati»), cassetto, area, acquisto. Idea, oggetto, contenitore e il sì/no «idea fatta» usano lo stesso componente (codice, non provati uno per uno a schermo).
+- PASS: il riquadro compare dentro il pannello di dettaglio o sotto il modulo in linea, il resto del pannello è bloccato, il focus iniziale è su «Annulla», Esc annulla e riporta il focus sul pulsante.
+- PASS: scelta del link: due schede, la seconda scelta crea l'acquisto.
+- PASS: a 375 px la conferma è un foglio dal basso con sfondo scuro e pulsanti da 46 px (azione sopra, «Annulla» sotto con il focus), senza overflow.
+- PASS: avvisi: successo con «Apri cartella» e scomparsa dopo 6 secondi, errore con «Altra cartella» / «Riprova» e × che resta finché non si chiude.
+- PASS (finestra Electron vera, backup via IPC): l'esito compare nell'app dopo il ricaricamento della finestra, sia «Backup completato» sia «Backup non riuscito» con una cartella inesistente. Un primo tentativo inviava l'avviso prima del ricaricamento e lo perdeva: corretto.
+- PASS: le note della release (HTML o elenchi) diventano righe di testo semplice (funzione `notesOf`).
+- Non provato: la striscia di aggiornamento con le novità a schermo, il pulsante «Apri cartella» nella finestra vera, la voce «Esporta backup…» della tray.

@@ -7,12 +7,14 @@ export interface UpdateState {
   version: string;
   percent: number;
   message: string;
+  /** Release notes (plain lines) from the GitHub release. */
+  notes: string[];
 }
 
 /** In-app updates, driven by the Electron main process (see desktop/main.js). Does nothing outside Electron. */
 @Injectable({ providedIn: 'root' })
 export class UpdateService {
-  readonly state = signal<UpdateState>({ status: 'idle', version: '', percent: 0, message: '' });
+  readonly state = signal<UpdateState>({ status: 'idle', version: '', percent: 0, message: '', notes: [] });
   /** "Più tardi": hides the banner for this version until the app is restarted. */
   private readonly dismissedVersion = signal('');
 
@@ -25,8 +27,8 @@ export class UpdateService {
   constructor() {
     const bridge = window.workspaceCare;
     if (!bridge?.onUpdateState) return;
-    void bridge.getUpdateState?.().then((s) => this.state.set(s));
-    bridge.onUpdateState((s) => this.state.set(s));
+    void bridge.getUpdateState?.().then((s) => this.state.set({ notes: [], ...s }));
+    bridge.onUpdateState((s) => this.state.set({ notes: [], ...s }));
   }
 
   download(): void {

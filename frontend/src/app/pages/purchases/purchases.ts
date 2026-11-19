@@ -48,6 +48,8 @@ interface Draft {
   idea: string;
 }
 
+import { ConfirmService } from '../../services/confirm.service';
+
 @Component({
   selector: 'app-purchases',
   imports: [FormsModule, NgTemplateOutlet, RouterLink, MatIconModule, MasterDetail, PageHead, StepsBar],
@@ -212,6 +214,7 @@ interface Draft {
   `,
 })
 export class Purchases implements OnInit {
+  private readonly confirmService = inject(ConfirmService);
   private readonly purchasesService = inject(PurchasesService);
   private readonly areasService = inject(AreasService);
   private readonly ideasService = inject(IdeasService);
@@ -373,14 +376,22 @@ export class Purchases implements OnInit {
     const siblings = this.purchases().filter((x) => x.idea === p.idea);
     const idea = this.ideas().find((i) => i.id === p.idea);
     if (!idea || idea.stato === 'fatta' || !siblings.every((x) => x.stato === 'montato')) return;
-    if (confirm(`Tutti gli acquisti di "${idea.titolo}" sono montati. Segnare l'idea come fatta?`)) {
+    const yes = await this.confirmService.ask({
+      kind: 'question',
+      title: `Segnare l'idea «${idea.titolo}» come fatta?`,
+      text: 'Tutti i suoi acquisti sono montati.',
+      confirmLabel: 'Sì, segna come fatta',
+      cancelLabel: 'Non ora',
+    });
+    if (yes) {
       const updated = await this.ideasService.update(idea.id, { stato: 'fatta' });
       this.ideas.update((list) => list.map((i) => (i.id === updated.id ? updated : i)));
     }
   }
 
   async remove(p: Purchase): Promise<void> {
-    if (this.busy() || !confirm(`Annullare l'acquisto «${p.articolo}»? Verrà eliminato.`)) return;
+    if (this.busy()) return;
+    if (!(await this.confirmService.ask({ title: `Annullare l'acquisto «${p.articolo}»?`, text: "L'acquisto verrà eliminato.", confirmLabel: 'Elimina acquisto' }))) return;
     this.busy.set(true);
     try {
       await this.purchasesService.remove(p.id);

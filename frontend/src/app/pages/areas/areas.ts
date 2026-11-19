@@ -8,6 +8,8 @@ import { AreasService } from '../../services/areas.service';
 const EMPTY: AreaStats = { items: 0, containers: 0, units: 0, checks: 0, checksLate: 0, ideasOpen: 0, requestsOpen: 0, rules: 0, links: 0 };
 
 /** One card per area with its numbers; a click opens the area page. */
+import { ConfirmService } from '../../services/confirm.service';
+
 @Component({
   selector: 'app-areas',
   imports: [FormsModule, RouterLink],
@@ -96,6 +98,7 @@ const EMPTY: AreaStats = { items: 0, containers: 0, units: 0, checks: 0, checksL
   `,
 })
 export class Areas implements OnInit {
+  private readonly confirmService = inject(ConfirmService);
   /** Emitted after any change, so that the tab counters of the Ufficio page can refresh. */
   readonly changed = output<void>();
   private readonly areasService = inject(AreasService);
@@ -181,7 +184,7 @@ export class Areas implements OnInit {
   async remove(a: Area): Promise<void> {
     this.error.set('');
     if (this.st(a).links) return;
-    if (!confirm(`Eliminare l'area "${a.nome}"?`)) return;
+    if (!(await this.confirmService.ask({ title: `Eliminare l'area «${a.nome}»?`, text: 'È vuota: non ha nulla di collegato.', confirmLabel: 'Elimina area' }))) return;
     try {
       await this.areasService.remove(a.id);
     } catch {

@@ -13,6 +13,8 @@ const NEXT_STATUS: Record<RuleStatus, RuleStatus | null> = { da_definire: 'bozza
 const ORDER: Record<RuleStatus, number> = { attiva: 0, bozza: 1, da_definire: 2 };
 
 /** Rules as a board: one box per topic, edited in place (no dialog). */
+import { ConfirmService } from '../../services/confirm.service';
+
 @Component({
   selector: 'app-rules',
   imports: [FormsModule, NgTemplateOutlet, RouterLink],
@@ -150,6 +152,7 @@ const ORDER: Record<RuleStatus, number> = { attiva: 0, bozza: 1, da_definire: 2 
   `,
 })
 export class Rules implements OnInit {
+  private readonly confirmService = inject(ConfirmService);
   private readonly service = inject(RulesService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -249,7 +252,8 @@ export class Rules implements OnInit {
 
   async remove(): Promise<void> {
     const id = this.editingId();
-    if (!id || id === 'new' || !confirm('Eliminare questa regola?')) return;
+    if (!id || id === 'new') return;
+    if (!(await this.confirmService.ask({ title: 'Eliminare questa regola?', text: 'Il testo della regola andrà perso.', confirmLabel: 'Elimina regola' }))) return;
     try {
       await this.service.remove(id);
       this.editingId.set('');

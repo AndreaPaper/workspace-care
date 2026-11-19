@@ -12,6 +12,8 @@ import { InventoryService } from '../../services/inventory.service';
 const NO_AREA = 'Senza area';
 
 /** The inventory as containers: one box per container (cabinet, box…) inside each area, edited in place. */
+import { ConfirmService } from '../../services/confirm.service';
+
 @Component({
   selector: 'app-inventory',
   imports: [FormsModule, MatIconModule, NgTemplateOutlet],
@@ -197,6 +199,7 @@ const NO_AREA = 'Senza area';
   `,
 })
 export class Inventory implements OnInit {
+  private readonly confirmService = inject(ConfirmService);
   /** Emitted after any change, so that the tab counters of the Ufficio page can refresh. */
   readonly changed = output<void>();
   private readonly service = inject(InventoryService);
@@ -317,7 +320,8 @@ export class Inventory implements OnInit {
 
   async removeItem(): Promise<void> {
     const id = this.editing().slice(2);
-    if (!id || id === 'new' || !confirm('Eliminare questo oggetto?')) return;
+    if (!id || id === 'new') return;
+    if (!(await this.confirmService.ask({ title: 'Eliminare questo oggetto?', text: "L'oggetto non sarà più in inventario.", confirmLabel: 'Elimina oggetto' }))) return;
     try {
       await this.service.remove(id);
       this.editing.set('');
@@ -360,7 +364,7 @@ export class Inventory implements OnInit {
         ? " L'oggetto al suo interno resta in inventario, senza contenitore."
         : ` I ${n} oggetti al suo interno restano in inventario, senza contenitore.`
       : '';
-    if (!confirm(`Eliminare il contenitore?${extra}`)) return;
+    if (!(await this.confirmService.ask({ title: 'Eliminare il contenitore?', text: extra.trim() || undefined, confirmLabel: 'Elimina contenitore' }))) return;
     try {
       await this.containersService.remove(id);
       this.editing.set('');

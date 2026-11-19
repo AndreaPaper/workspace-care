@@ -26,6 +26,8 @@ interface Draft {
   descrizione: string;
 }
 
+import { ConfirmService } from '../../services/confirm.service';
+
 @Component({
   selector: 'app-requests',
   imports: [FormsModule, NgTemplateOutlet, RouterLink, MatIconModule, MasterDetail, PageHead],
@@ -194,6 +196,7 @@ interface Draft {
   `,
 })
 export class Requests implements OnInit {
+  private readonly confirmService = inject(ConfirmService);
   private readonly requestsService = inject(RequestsService);
   private readonly eventsService = inject(RequestEventsService);
   private readonly areasService = inject(AreasService);
@@ -397,7 +400,8 @@ export class Requests implements OnInit {
   }
 
   async remove(r: WorkRequest): Promise<void> {
-    if (this.busy() || !confirm(`Eliminare la richiesta «${r.titolo}»?`)) return;
+    if (this.busy()) return;
+    if (!(await this.confirmService.ask({ title: `Eliminare la richiesta «${r.titolo}»?`, text: 'La richiesta non sarà più recuperabile.', confirmLabel: 'Elimina richiesta' }))) return;
     this.busy.set(true);
     try {
       await this.requestsService.remove(r.id);

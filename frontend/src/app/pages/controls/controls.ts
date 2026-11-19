@@ -24,6 +24,8 @@ interface Draft {
   giorno: number;
 }
 
+import { ConfirmService } from '../../services/confirm.service';
+
 @Component({
   selector: 'app-controls',
   imports: [FormsModule, NgTemplateOutlet, MatIconModule, MasterDetail, PageHead],
@@ -175,6 +177,7 @@ interface Draft {
   `,
 })
 export class Controls implements OnInit {
+  private readonly confirmService = inject(ConfirmService);
   private readonly controlsService = inject(ControlsService);
   private readonly areasService = inject(AreasService);
   private readonly route = inject(ActivatedRoute);
@@ -389,7 +392,8 @@ export class Controls implements OnInit {
   }
 
   async remove(c: Check): Promise<void> {
-    if (this.busy() || !confirm(`Eliminare il controllo «${c.nome}» e il suo storico?`)) return;
+    if (this.busy()) return;
+    if (!(await this.confirmService.ask({ title: `Eliminare il controllo «${c.nome}»?`, list: ['Il suo storico di esecuzioni'], confirmLabel: 'Elimina controllo' }))) return;
     this.busy.set(true);
     try {
       await this.controlsService.remove(c.id);

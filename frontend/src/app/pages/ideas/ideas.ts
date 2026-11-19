@@ -1,6 +1,5 @@
 import { Component, DestroyRef, computed, effect, inject, OnInit, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MasterDetail } from '../../core/ui/master-detail';
@@ -17,7 +16,6 @@ import { AreasService } from '../../services/areas.service';
 import { IdeaLinksService } from '../../services/idea-links.service';
 import { IdeasService } from '../../services/ideas.service';
 import { PurchasesService } from '../../services/purchases.service';
-import { LinkChoiceDialog } from './link-choice-dialog';
 
 type Tab = 'valutare' | 'incorso' | 'chiuse';
 type Urgency = IdeaPriority | 'nessuna';
@@ -56,6 +54,8 @@ interface Draft {
   note: string;
   urls: string;
 }
+
+import { ConfirmService } from '../../services/confirm.service';
 
 @Component({
   selector: 'app-ideas',
@@ -305,12 +305,12 @@ interface Draft {
   `,
 })
 export class Ideas implements OnInit {
+  private readonly confirmService = inject(ConfirmService);
   private readonly ideasService = inject(IdeasService);
   private readonly areasService = inject(AreasService);
   private readonly linksService = inject(IdeaLinksService);
   private readonly purchasesService = inject(PurchasesService);
   private readonly pb = inject(PocketBaseService);
-  private readonly dialog = inject(MatDialog);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
@@ -589,12 +589,18 @@ export class Ideas implements OnInit {
     if (this.busy()) return;
     let linkId: string | undefined;
     if (this.links().length > 1) {
-      linkId = await new Promise<string | undefined>((resolve) =>
-        this.dialog
-          .open(LinkChoiceDialog, { data: { links: this.links() }, width: '30rem', maxWidth: '95vw' })
-          .afterClosed()
-          .subscribe((id?: string) => resolve(id || undefined)),
-      );
+      linkId =
+        (await this.confirmService.choose({
+          title: "Quale link usare per l'acquisto?",
+          text: "Fornitore e indirizzo dell'acquisto vengono copiati da questo link.",
+          confirmLabel: "Crea l'acquisto",
+          choices: this.links().map((l) => ({
+            id: l.id,
+            title: l.titolo || l.url,
+            meta: [l.sito, l.prezzo].filter(Boolean).join(' · '),
+            image: l.immagine ? this.linksService.imageUrl(l) : l.immagine_url || undefined,
+          })),
+        })) ?? undefined;
       if (!linkId) return;
     }
     this.busy.set(true);
@@ -611,7 +617,10 @@ export class Ideas implements OnInit {
   }
 
   async remove(i: Idea): Promise<void> {
-    if (this.busy() || !confirm(`Eliminare l'idea «${i.titolo}» e i suoi link?`)) return;
+    if (this.busy()) return;
+    const nLinks = this.links().length;
+    const list = nLinks ? [`${nLinks} ${nLinks === 1 ? 'link' : 'link'} con le anteprime`] : undefined;
+    if (!(await this.confirmService.ask({ title: `Eliminare l'idea «${i.titolo}»?`, list, confirmLabel: 'Elimina idea' }))) return;
     this.busy.set(true);
     try {
       await this.ideasService.remove(i.id);

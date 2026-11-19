@@ -64,6 +64,12 @@ Acquisti: fascia budget con speso / ordinato da pagare / stima ancora da decider
 Altre pagine: Dashboard.
 Il PDF si genera dalla pagina `#/riepilogo` con `webContents.printToPDF` di Electron (stile `@media print`).
 
+## Popup (design «Nel pannello»)
+- Niente `window.confirm` né dialog Material: ogni conferma passa da `services/confirm.service.ts` (`ask` per eliminazioni e sì/no, `choose` per la scelta del link). Il riquadro (`core/ui/confirm-box.ts`) compare accanto all'elemento che l'ha richiesto — dentro `.md-detail`, sotto il modulo in linea o la riga — e blocca (`inert`) la parte di pagina a cui appartiene; Esc annulla e il focus torna al pulsante di partenza. Sotto i 480 px diventa un foglio dal basso.
+- Esiti: `services/toast.service.ts` + `core/ui/toast-host.ts` (in basso al centro; il positivo sparisce dopo 6 s, l'errore resta). Il main process invia al renderer l'esito del backup (`sendToast`, coda `toast-take` / evento `toast-ready`), così non resta nessuna finestra di Electron tranne i selettori di Windows (Salva con nome, Scegli cartella) e gli errori all'avvio.
+- La striscia degli aggiornamenti (`core/ui/update-banner.ts`) mostra le novità prese dalle note della release GitHub.
+- Test accanto all'app installata: `WC_PORT=8091` e `electron . --user-data-dir=<cartella temporanea>`; mai toccare `%APPDATA%\workspace-care` dell'app installata.
+
 ## Convenzioni
 - Codice e nomi in inglese, testi dell'interfaccia in italiano (i nomi delle collezioni PocketBase restano italiani).
 - Un servizio Angular per collezione, tipi TypeScript allineati alle collezioni (`models/models.ts`).

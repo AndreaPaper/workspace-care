@@ -4,6 +4,14 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('workspaceCare', {
   getCredentials: () => ipcRenderer.invoke('credentials'),
   exportPdf: (suggestedName) => ipcRenderer.invoke('export-pdf', suggestedName),
+  takeToasts: () => ipcRenderer.invoke('toast-take'),
+  onToastReady: (callback) => {
+    const listener = () => callback();
+    ipcRenderer.on('toast-ready', listener);
+    return () => ipcRenderer.removeListener('toast-ready', listener);
+  },
+  showInFolder: (target) => ipcRenderer.invoke('show-in-folder', target),
+  exportBackup: (folder) => ipcRenderer.invoke('export-backup', folder),
   getUpdateState: () => ipcRenderer.invoke('update-state'),
   checkForUpdates: () => ipcRenderer.invoke('update-check'),
   downloadUpdate: () => ipcRenderer.invoke('update-download'),

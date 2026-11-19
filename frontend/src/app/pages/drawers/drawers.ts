@@ -9,6 +9,8 @@ import { DrawersService, DrawerUnitsService } from '../../services/drawers.servi
 const NO_AREA = 'Senza area';
 
 /** Drawer units drawn as furniture: one box per area, each unit a stack of single drawers coloured by type. */
+import { ConfirmService } from '../../services/confirm.service';
+
 @Component({
   selector: 'app-drawers',
   imports: [FormsModule, RouterLink],
@@ -188,6 +190,7 @@ const NO_AREA = 'Senza area';
   `,
 })
 export class Drawers implements OnInit {
+  private readonly confirmService = inject(ConfirmService);
   private readonly unitsService = inject(DrawerUnitsService);
   private readonly drawersService = inject(DrawersService);
   private readonly areasService = inject(AreasService);
@@ -357,7 +360,8 @@ export class Drawers implements OnInit {
   }
 
   async removeDrawer(d: Drawer): Promise<void> {
-    if (!confirm(`Eliminare il cassetto ${d.numero}?`)) return;
+    const who = d.tipo === 'personale' ? `Assegnato a ${d.assegnato_a || 'una persona'}` : d.tipo === 'condiviso' ? `Contenuto: ${d.contenuto || 'materiale condiviso'}` : undefined;
+    if (!(await this.confirmService.ask({ title: `Eliminare il cassetto ${d.numero}?`, text: who, confirmLabel: 'Elimina cassetto' }))) return;
     try {
       await this.drawersService.remove(d.id);
       this.sel.set('');
@@ -406,7 +410,10 @@ export class Drawers implements OnInit {
   async removeUnit(): Promise<void> {
     const id = this.sel().slice(2);
     const n = this.drawers().filter((d) => d.cassettiera === id).length;
-    if (!id || !confirm(`Eliminare la cassettiera${n ? ` e i suoi ${n} cassetti` : ''}?`)) return;
+    if (!id) return;
+    const assigned = this.drawers().filter((d) => d.cassettiera === id && d.tipo !== 'libero').length;
+    const list = n ? [`${n} ${n === 1 ? 'cassetto' : 'cassetti'}${assigned ? `, di cui ${assigned} ${assigned === 1 ? 'assegnato' : 'assegnati'}` : ''}`] : undefined;
+    if (!(await this.confirmService.ask({ title: 'Eliminare la cassettiera?', list, confirmLabel: 'Elimina cassettiera' }))) return;
     try {
       await this.unitsService.remove(id);
       this.sel.set('');
