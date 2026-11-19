@@ -58,7 +58,9 @@ Acquisti: fascia budget con speso / ordinato da pagare / stima ancora da decider
 
 **Regole** (`pages/rules`): bacheca con un riquadro per tema, senza dialog. Attive su fondo verde, bozze tratteggiate con «Attiva», da definire con «Scrivi la bozza»; clic sul testo = modifica in linea; avviso «N regole da sistemare» con filtro `?da_sistemare=1`. Il pulsante «Cartello» apre `#/regole/cartello?tema=…` (`rule-sign.ts`): le sole regole attive del tema in grande, esportabili in PDF come il riepilogo.
 
-Altre pagine: Dashboard, Riepilogo per la direzione (esporta PDF).
+**Riepilogo** (`pages/report`, «Anteprima del foglio»): a sinistra le impostazioni (periodo a pulsanti, sezioni con conteggi, «Mostra i costi», due righe di apertura facoltative, «Esporta PDF» con stima delle pagine A4 e data dell'ultimo invio in `localStorage`); a destra l'anteprima del foglio con 4 numeri chiave. In stampa resta solo il foglio. Le righe di apertura non vengono salvate.
+
+Altre pagine: Dashboard.
 Il PDF si genera dalla pagina `#/riepilogo` con `webContents.printToPDF` di Electron (stile `@media print`).
 
 ## Convenzioni

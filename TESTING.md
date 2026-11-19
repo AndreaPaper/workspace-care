@@ -356,3 +356,10 @@ Inventario, Cassettiere e Aree sono ora tre schede di `#/ufficio`; i casi B e I 
 - PASS: `?q=` dalla ricerca globale filtra le regole; «Togli il filtro».
 - PASS: «Cartello» mostra solo le regole attive del tema; disattivato se non ce ne sono; nessun overflow a 375 px.
 - Non provato: il file PDF del cartello dalla finestra reale (stesso meccanismo del riepilogo, già provato).
+
+## Aggiornamento del 19 novembre: Riepilogo come anteprima del foglio
+
+- PASS: periodo a pulsanti (ricarica i dati, il titolo del foglio cambia), sezioni con conteggi, ogni casella nasconde la sezione, «Mostra i costi» toglie importi e il numero «spesi», righe di apertura in corsivo sotto l'intestazione.
+- PASS: layout a due colonne a 1440 px, colonna unica senza overflow a 375 px.
+- PASS (caso J3 rieseguito dalla finestra reale, con 22 idee e 14 acquisti): il PDF ha 2 pagine A4 e contiene solo il foglio (niente impostazioni), numeri chiave e righe di apertura inclusi.
+- Nota: la stima «circa N pagine» si aggiorna solo con la finestra visibile; è approssimata (qui 2 stimate, 2 reali).

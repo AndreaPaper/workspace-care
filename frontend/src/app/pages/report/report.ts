@@ -1,11 +1,6 @@
 import { CurrencyPipe } from '@angular/common';
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { AfterViewInit, Component, DestroyRef, ElementRef, computed, inject, OnInit, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
-import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatIconModule } from '@angular/material/icon';
-import { MatSelectModule } from '@angular/material/select';
 import {
   IDEA_STATUSES, Idea, PURCHASE_STATUSES, Purchase, REQUEST_STATUSES, RULE_TOPICS, Rule, WorkRequest, labelOf,
 } from '../../models/models';
@@ -20,42 +15,71 @@ import { RulesService } from '../../services/rules.service';
 type Run = Awaited<ReturnType<ControlsService['runsSince']>>[number];
 
 const PERIODS = [
-  { value: '30', label: 'Ultimi 30 giorni' },
-  { value: '90', label: 'Ultimi 90 giorni' },
-  { value: '365', label: 'Ultimo anno' },
-  { value: 'tutto', label: 'Tutto' },
+  { value: '30', label: 'Ultimo mese', long: 'Ultimi 30 giorni' },
+  { value: '90', label: 'Ultimi 3 mesi', long: 'Ultimi 90 giorni' },
+  { value: '365', label: 'Ultimo anno', long: 'Ultimo anno' },
+  { value: 'tutto', label: 'Tutto', long: 'Tutto' },
 ];
+
+const LAST_EXPORT_KEY = 'wc-report-last-export';
+
+function readLastExport(): string {
+  try { return localStorage.getItem(LAST_EXPORT_KEY) ?? ''; } catch { return ''; }
+}
 
 @Component({
   selector: 'app-report',
-  imports: [CurrencyPipe, FormsModule, MatButtonModule, MatCheckboxModule, MatFormFieldModule, MatIconModule, MatSelectModule],
+  imports: [CurrencyPipe, FormsModule],
   template: `
-    <div class="options no-print">
-      <h1>Riepilogo per la direzione</h1>
-      <div class="row">
-        <mat-form-field>
-          <mat-label>Periodo</mat-label>
-          <mat-select [value]="period()" (selectionChange)="period.set($event.value); reload()">
-            @for (p of periods; track p.value) { <mat-option [value]="p.value">{{ p.label }}</mat-option> }
-          </mat-select>
-        </mat-form-field>
-        <button mat-flat-button (click)="exportPdf()" [disabled]="exporting()"><mat-icon>picture_as_pdf</mat-icon> Esporta PDF</button>
-      </div>
-      <div class="checks">
-        <mat-checkbox [checked]="show.ideas()" (change)="show.ideas.set($event.checked)">Proposte e lavori</mat-checkbox>
-        <mat-checkbox [checked]="show.purchases()" (change)="show.purchases.set($event.checked)">Acquisti</mat-checkbox>
-        <mat-checkbox [checked]="show.checks()" (change)="show.checks.set($event.checked)">Controlli</mat-checkbox>
-        <mat-checkbox [checked]="show.requests()" (change)="show.requests.set($event.checked)">Richieste</mat-checkbox>
-        <mat-checkbox [checked]="show.rules()" (change)="show.rules.set($event.checked)">Regole attive</mat-checkbox>
-        <mat-checkbox [checked]="show.costs()" (change)="show.costs.set($event.checked)">Mostra i costi</mat-checkbox>
-      </div>
-    </div>
+    <div class="layout">
+      <aside class="settings no-print">
+        <h1>Riepilogo</h1>
+        <p class="sub">Per la direzione · scegli cosa mettere nel foglio</p>
 
-    <article class="report">
+        <div class="group" role="group" aria-label="Periodo">
+          <span class="cap">Periodo</span>
+          <div class="seg">
+            @for (p of periods; track p.value) {
+              <button type="button" [attr.aria-pressed]="period() === p.value" (click)="setPeriod(p.value)">{{ p.label }}</button>
+            }
+          </div>
+        </div>
+
+        <div class="group">
+          <span class="cap">Sezioni</span>
+          <div class="checks">
+            <label><input type="checkbox" [checked]="show.ideas()" (change)="show.ideas.set(on($event))" /> <span>Proposte e lavori</span><b>{{ activeIdeas().length + doneIdeas().length }}</b></label>
+            <label><input type="checkbox" [checked]="show.purchases()" (change)="show.purchases.set(on($event))" /> <span>Acquisti</span><b>{{ purchases().length }}</b></label>
+            <label><input type="checkbox" [checked]="show.checks()" (change)="show.checks.set(on($event))" /> <span>Controlli</span><b>{{ runs().length }} eseguiti</b></label>
+            <label><input type="checkbox" [checked]="show.requests()" (change)="show.requests.set(on($event))" /> <span>Richieste</span><b>{{ requestsReceived().length }}</b></label>
+            <label><input type="checkbox" [checked]="show.rules()" (change)="show.rules.set(on($event))" /> <span>Regole attive</span><b>{{ rules().length }}</b></label>
+          </div>
+          <label class="costs"><input type="checkbox" [checked]="show.costs()" (change)="show.costs.set(on($event))" /> <span>Mostra i costi</span></label>
+        </div>
+
+        <div class="group">
+          <label class="cap" for="intro">Due righe di apertura (facoltative)</label>
+          <textarea id="intro" rows="3" [ngModel]="intro()" (ngModelChange)="intro.set($event)" placeholder="Es. Questo mese ci siamo concentrati su…"></textarea>
+        </div>
+
+        <button type="button" class="export" (click)="exportPdf()" [disabled]="exporting()">Esporta PDF</button>
+        <p class="hint">circa {{ pages() }} {{ pages() === 1 ? 'pagina' : 'pagine' }} A4@if (lastExport()) { · ultimo invio il {{ lastExport() }} }</p>
+      </aside>
+
+      <div class="stage">
+    <article class="report" #sheet>
       <header>
         <h1>Workspace Care – riepilogo</h1>
         <p class="muted">{{ periodLabel() }} · generato il {{ today() }}</p>
+        @if (intro().trim()) { <p class="intro">{{ intro().trim() }}</p> }
       </header>
+
+      <div class="kpis">
+        <div><b>{{ doneIdeas().length }}</b><span>lavori fatti</span></div>
+        @if (show.costs()) { <div><b>{{ totals().spent | currency: 'EUR' : 'symbol' : '1.0-0' }}</b><span>spesi</span></div> }
+        <div><b>{{ runs().length }}</b><span>controlli</span></div>
+        <div><b>{{ requestsHandled().length }}</b><span>richieste chiuse</span></div>
+      </div>
 
       @if (show.ideas()) {
         <section>
@@ -165,12 +189,43 @@ const PERIODS = [
         </section>
       }
     </article>
+      </div>
+    </div>
   `,
   styles: `
-    .options { margin-bottom: 1.5rem; }
-    .row { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
-    .checks { display: flex; gap: 1rem; flex-wrap: wrap; }
-    .report { max-width: 860px; background: #fff; color: #111; padding: 1.5rem 2rem; border: 1px solid var(--mat-sys-outline-variant); border-radius: 8px; }
+    .layout { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 24px; align-items: start; }
+    .settings { display: flex; flex-direction: column; gap: 18px; font-family: Inter, system-ui, sans-serif; }
+    .settings h1 { margin: 0; font: 800 30px 'Plus Jakarta Sans', Inter, sans-serif; }
+    .sub { margin: -12px 0 0; color: #5a5c53; font-size: 14px; }
+    .group { display: flex; flex-direction: column; gap: 8px; }
+    .cap { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #45473f; }
+    .seg { display: flex; flex-wrap: wrap; gap: 6px; }
+    .seg button { height: 40px; padding: 0 14px; border: 1px solid #cfc9bb; border-radius: 999px; background: #fff; color: #22241f; font: 600 13px Inter, system-ui, sans-serif; cursor: pointer; }
+    .seg button[aria-pressed='true'] { background: #2e6a4f; border-color: #2e6a4f; color: #fff; }
+    .checks { background: #fff; border-radius: 16px; padding: 6px 14px; display: flex; flex-direction: column; }
+    .checks label, .costs { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 14px; cursor: pointer; }
+    .checks label span { flex: 1; }
+    .checks label b { color: #5a5c53; font-size: 13px; font-weight: 600; }
+    .checks label + label { border-top: 1px solid #efebe3; }
+    .settings input[type='checkbox'] { width: 18px; height: 18px; accent-color: #2e6a4f; }
+    .settings textarea { width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #cfc9bb; border-radius: 12px; font: 14px/1.45 Inter, system-ui, sans-serif; resize: vertical; }
+    .settings button:focus-visible, .settings input:focus-visible, .settings textarea:focus-visible { outline: 3px solid #2f6fb5; outline-offset: 2px; }
+    .export { height: 52px; border: 0; border-radius: 999px; background: #2e6a4f; color: #fff; font: 700 16px Inter, system-ui, sans-serif; cursor: pointer; }
+    .export:disabled { opacity: .5; cursor: default; }
+    .hint { margin: -10px 0 0; text-align: center; color: #5a5c53; font-size: 13px; }
+    .stage { background: #e9e5dc; border-radius: 24px; padding: 28px 16px; display: flex; justify-content: center; }
+    .intro { font-style: italic; color: #334155; margin: .6rem 0 0; white-space: pre-wrap; }
+    .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px; margin: 1rem 0 0; }
+    .kpis div { background: #f4f2ec; border-radius: 10px; padding: .5rem .7rem; display: flex; flex-direction: column; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .kpis b { font-size: 1.3rem; }
+    .kpis span { font-size: .8rem; color: #475569; }
+    @media (max-width: 1000px) { .layout { grid-template-columns: minmax(0, 1fr); } .stage { padding: 16px 8px; } }
+    @media print {
+      .layout { display: block; }
+      .stage { background: none; padding: 0; border-radius: 0; display: block; }
+      .report { box-shadow: none !important; border: 0 !important; max-width: none !important; border-radius: 0 !important; padding: 0 !important; }
+    }
+    .report { width: 100%; max-width: 620px; box-sizing: border-box; background: #fff; color: #111; padding: 1.5rem 2rem; box-shadow: 0 2px 10px rgba(60, 50, 30, .15); }
     .report h1 { font-size: 1.5rem; margin: 0; }
     .report h2 { font-size: 1.15rem; margin: 1.5rem 0 .5rem; border-bottom: 2px solid #4f46e5; padding-bottom: .2rem; }
     /* A section can be longer than a page: only keep a heading with the content that follows it. */
@@ -190,7 +245,12 @@ const PERIODS = [
     .chip { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   `,
 })
-export class Report implements OnInit {
+export class Report implements OnInit, AfterViewInit {
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly sheet = viewChild<ElementRef<HTMLElement>>('sheet');
+  readonly intro = signal('');
+  readonly pages = signal(1);
+  readonly lastExport = signal(readLastExport());
   private readonly ideasService = inject(IdeasService);
   private readonly linksService = inject(IdeaLinksService);
   private readonly purchasesService = inject(PurchasesService);
@@ -224,7 +284,7 @@ export class Report implements OnInit {
   /** First day included in the period, or '' for no limit. */
   private readonly since = computed(() => (this.period() === 'tutto' ? '' : addDays(todayDay(), -Number(this.period()))));
   readonly periodLabel = computed(() => {
-    const p = PERIODS.find((x) => x.value === this.period())?.label ?? '';
+    const p = PERIODS.find((x) => x.value === this.period())?.long ?? '';
     return this.since() ? `${p} (dal ${formatDay(this.since())})` : p;
   });
   readonly today = computed(() => formatDay(todayDay()));
@@ -245,6 +305,28 @@ export class Report implements OnInit {
 
   ngOnInit(): Promise<void> {
     return this.reload();
+  }
+
+  /** Keeps the "about N A4 pages" hint in step with the sheet's height. */
+  ngAfterViewInit(): void {
+    const el = this.sheet()?.nativeElement;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => {
+      // The sheet is previewed ~620 px wide but printed on ~700 px of usable A4 width, ~1000 px high.
+      const printed = el.scrollHeight * (el.clientWidth / 700);
+      this.pages.set(Math.max(1, Math.ceil(printed / 1000)));
+    });
+    ro.observe(el);
+    this.destroyRef.onDestroy(() => ro.disconnect());
+  }
+
+  setPeriod(value: string): void {
+    this.period.set(value);
+    void this.reload();
+  }
+
+  on(event: Event): boolean {
+    return (event.target as HTMLInputElement).checked;
   }
 
   async reload(): Promise<void> {
@@ -288,7 +370,12 @@ export class Report implements OnInit {
     }
     this.exporting.set(true);
     try {
-      await bridge.exportPdf(`riepilogo-workspace-care-${todayDay()}.pdf`);
+      const saved = await bridge.exportPdf(`riepilogo-workspace-care-${todayDay()}.pdf`);
+      if (saved) {
+        const stamp = formatDay(todayDay());
+        try { localStorage.setItem(LAST_EXPORT_KEY, stamp); } catch { /* optional */ }
+        this.lastExport.set(stamp);
+      }
     } finally {
       this.exporting.set(false);
     }
