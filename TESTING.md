@@ -380,3 +380,7 @@ Inventario, Cassettiere e Aree sono ora tre schede di `#/ufficio`; i casi B e I 
 - PASS: assegnare un solo cassetto, assegnare tutta la cassettiera, passare da personale a libero, nuova cassettiera con N cassetti (numero proposto), numero duplicato rifiutato con messaggio, «+ Cassetto», eliminazione della cassettiera con i suoi cassetti (cascata), creazione in blocco con cassetti per cassettiera.
 - PASS: a 375 px il riquadro di dettaglio sta sotto, senza overflow e senza errori Angular in console.
 - PASS: numero di cassetto duplicato nella stessa cassettiera rifiutato dall'API.
+
+## Aggiornamento del 19 novembre: ricerca dei cassetti
+
+- PASS: Ctrl K trova i cassetti per persona o contenuto, con «Cassettiera N · cassetto M · area»; il clic apre la scheda Cassettiere con quel cassetto selezionato, anche quando la scheda è già aperta.

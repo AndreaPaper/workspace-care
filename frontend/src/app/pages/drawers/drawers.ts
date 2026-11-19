@@ -1,6 +1,7 @@
-import { Component, computed, inject, OnInit, output, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, OnInit, output, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Area, Drawer, DrawerType, DrawerUnit } from '../../models/models';
 import { AreasService } from '../../services/areas.service';
 import { DrawersService, DrawerUnitsService } from '../../services/drawers.service';
@@ -182,6 +183,9 @@ export class Drawers implements OnInit {
   private readonly unitsService = inject(DrawerUnitsService);
   private readonly drawersService = inject(DrawersService);
   private readonly areasService = inject(AreasService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
   /** Emitted after any change, so that the tab counters of the Ufficio page can refresh. */
   readonly changed = output<void>();
@@ -235,6 +239,14 @@ export class Drawers implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await this.reload(false);
+    // From the global search: ?cassetto=<id> opens that drawer (also when this tab is already open), then the parameter is dropped.
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((p) => {
+      const id = p.get('cassetto');
+      if (!id) return;
+      const d = this.drawers().find((x) => x.id === id);
+      if (d) this.selectDrawer(d);
+      void this.router.navigate([], { queryParams: { cassetto: null }, queryParamsHandling: 'merge', replaceUrl: true });
+    });
   }
 
   private async reload(notify = true): Promise<void> {

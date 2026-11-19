@@ -44,7 +44,7 @@ essere veloce da usare e richiedere poca manutenzione.
 ## Schermate
 La grafica di dashboard e sidebar segue la proposta «D · Mix» del design (artifact "Workspace Care – Dashboard e sidebar").
 - **Sidebar**: rail compatta (92 px; su telefono diventa una striscia scorrevole in alto) con logo, menu **Nuovo** (idea, richiesta, acquisto, controllo), contatori su Richieste (aperte) e Controlli (in ritardo o di oggi), poi Ufficio (icona mappa), Regole, Riepilogo. I contatori stanno in `services/badges.service.ts`.
-- **Ricerca globale** (Ctrl K) in cima a ogni pagina: idee, richieste, acquisti, inventario, regole (`core/search`). I risultati aprono la pagina con `?q=`; `?nuova=1` apre il dialog di creazione (`core/page-params.ts`).
+- **Ricerca globale** (Ctrl K) in cima a ogni pagina: idee, richieste, acquisti, inventario, cassetti (per persona o contenuto), regole (`core/search`). I risultati aprono la pagina con `?q=`; un cassetto apre la scheda Cassettiere con `?cassetto=<id>` già selezionato; `?nuova=1` apre il dialog di creazione (`core/page-params.ts`).
 - **Dashboard**: saluto e riepilogo del giorno, avviso se un controllo è in ritardo, tutti i controlli ordinati per scadenza, idee da valutare (stato idea o da_valutare) con filtro per urgenza e smistamento Alta/Media/Bassa con un clic, richieste aperte, idee approvate pronte per l'acquisto e budget.
 
 **Idee, Richieste, Controlli, Acquisti** sono pagine «lista a sinistra, dettaglio a destra» (tela di design: Idee-Dettaglio, Richieste-Dettaglio,
