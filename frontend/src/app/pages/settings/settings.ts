@@ -118,7 +118,7 @@ const SECTIONS: { key: Section; label: string; icon: string; color: string }[] =
                 <button type="submit" class="btn btn-primary" [disabled]="!newPerson.trim()">Aggiungi</button>
               </form>
               @if (peopleError()) { <p class="err" role="alert">{{ peopleError() }}</p> }
-              <ul class="people">
+              <ul class="people" tabindex="0" aria-label="Elenco delle persone">
                 @for (p of people.people(); track p.id) {
                   <li>
                     @if (renamingId() === p.id) {
@@ -260,7 +260,8 @@ const SECTIONS: { key: Section; label: string; icon: string; color: string }[] =
     .path { padding: 10px 12px; border-radius: 12px; background: #f6f2ea; font: 13px ui-monospace, Consolas, monospace; overflow-wrap: anywhere; }
     .addrow { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
     .err { margin: 0; color: #b42318; font-size: 14px; }
-    .people { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+    .people { list-style: none; margin: 0; padding: 0 8px 0 0; display: flex; flex-direction: column; max-height: min(420px, 48vh); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+    .people:focus-visible { outline: 3px solid #2f6fb5; outline-offset: 2px; border-radius: 8px; }
     .people li { display: flex; align-items: center; gap: 6px; padding: 8px 0; border-top: 1px solid #efebe3; flex-wrap: wrap; }
     .people .pname { flex: 1; min-width: 120px; font-size: 15px; }
     .danger-zone { margin-top: 12px; padding-top: 16px; border-top: 1px solid #efebe3; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
