@@ -210,6 +210,7 @@ import { ConfirmService } from '../../services/confirm.service';
                       <span class="s">{{ linkMeta(l) }}</span>
                       @if (l.stato_anteprima && l.stato_anteprima !== 'ok') {
                         <span [class]="'md-chip small ' + (l.stato_anteprima === 'fallita' ? 'bad' : 'warn')">anteprima {{ l.stato_anteprima }}</span>
+                        <button type="button" class="md-more" [disabled]="retrying() === l.id" (click)="retryPreview(l)">{{ retrying() === l.id ? 'Riprovo…' : 'Riprova anteprima' }}</button>
                         <div class="fallback">
                           <input type="url" placeholder="URL immagine" [attr.aria-label]="'URL immagine per ' + (l.titolo || l.url)" [(ngModel)]="imageUrls[l.id]" />
                           <button type="button" class="icon-mini" aria-label="Usa questo URL" (click)="setImageUrl(l)"><mat-icon aria-hidden="true">check</mat-icon></button>
@@ -284,7 +285,9 @@ import { ConfirmService } from '../../services/confirm.service';
     .note strong { font-size: 12px; color: #45473f; }
     .links { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
     .link { border-radius: 16px; overflow: hidden; border: 1px solid #e6e0d3; display: flex; flex-direction: column; }
-    .link img, .link .noimg { width: 100%; height: 110px; object-fit: cover; background: repeating-linear-gradient(135deg, #ece7dc 0 10px, #f3efe7 10px 20px); display: block; }
+    .link .noimg { width: 100%; height: 110px; background: repeating-linear-gradient(135deg, #ece7dc 0 10px, #f3efe7 10px 20px); display: block; }
+    /* The whole picture is shown (a screenshot must not be cropped), on a neutral background. */
+    .link img { width: 100%; height: auto; max-height: 240px; object-fit: contain; background: #f6f2ea; display: block; }
     .link .info { padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; align-items: flex-start; min-width: 0; }
     .link .info strong { font-size: 13px; font-weight: 600; color: #22241f; overflow-wrap: anywhere; }
     .link .s { font-size: 12px; color: #55584f; }
@@ -493,7 +496,7 @@ export class Ideas implements OnInit {
   }
 
   linkImage(l: IdeaLink): string {
-    return this.linksService.imageUrl(l);
+    return this.linksService.imageFitUrl(l);
   }
 
   photoUrl(i: Idea, file: string): string {
@@ -522,6 +525,25 @@ export class Ideas implements OnInit {
     await this.linksService.remove(l.id);
     this.links.update((list) => list.filter((x) => x.id !== l.id));
     await this.loadCovers();
+  }
+
+  /** Id of the link whose preview is being fetched again. */
+  readonly retrying = signal('');
+
+  /** Fetches the page of the link again (the server keeps a picture that is already there). */
+  async retryPreview(l: IdeaLink): Promise<void> {
+    if (this.retrying()) return;
+    this.retrying.set(l.id);
+    this.error.set('');
+    try {
+      const updated = await this.linksService.retryPreview(l.id);
+      this.links.update((list) => list.map((x) => (x.id === l.id ? updated : x)));
+      await this.loadCovers();
+    } catch {
+      this.error.set('Impossibile ricaricare l\'anteprima.');
+    } finally {
+      this.retrying.set('');
+    }
   }
 
   async setImageUrl(l: IdeaLink): Promise<void> {

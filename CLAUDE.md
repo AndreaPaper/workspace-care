@@ -33,7 +33,7 @@ essere veloce da usare e richiedere poca manutenzione.
 
 ## Logica lato server (`backend/pb_hooks/`)
 - `anteprima.pb.js` + `lib/preview.js`: all'inserimento di un link scarica og:image/og:title/og:site_name e prezzo;
-  mai bloccante, `stato_anteprima = fallita` se non riesce. Amazon e simili si gestiscono col fallback manuale.
+  mai bloccante, `stato_anteprima = fallita` se non riesce. L'immagine viene cercata in og:image, twitter:image, `image_src`, JSON-LD e, per Amazon, nel `hiRes` / `landingImage` della pagina (il prezzo dal primo `a-price`); `POST /api/link_idea/:id/anteprima` («Riprova anteprima» nell'app) rifà la ricerca e tiene l'immagine già presente. Se un sito blocca la richiesta resta il fallback manuale (URL immagine o screenshot). Le schede dei link mostrano l'immagine intera (miniatura `480x0`, `object-fit: contain`), non ritagliata.
 - `controlli.pb.js` + `lib/scadenze.js`: calcolo di `prossima_scadenza`; `POST /api/controlli/:id/fatto` registra
   l'esecuzione e sposta la scadenza contando da oggi (nessun arretrato). Bisettimanale: giorno della settimana fisso,
   prossima occorrenza almeno 8 giorni dopo oggi. La stessa regola è replicata in `frontend/src/app/services/scadenze.ts`

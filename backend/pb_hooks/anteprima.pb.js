@@ -12,6 +12,20 @@ onRecordCreateRequest((e) => {
   e.next();
 }, 'link_idea');
 
+// "Riprova anteprima": fetches the page again for an existing link (partial or failed preview).
+routerAdd(
+  'POST',
+  '/api/link_idea/{id}/anteprima',
+  (e) => {
+    const preview = require(`${__hooks}/lib/preview.js`);
+    const record = $app.findRecordById('link_idea', e.request.pathValue('id'));
+    preview.fillPreview(record);
+    $app.save(record);
+    return e.json(200, record);
+  },
+  $apis.requireAuth(),
+);
+
 // Manual fallback: when immagine_url changes, download that image into the file field.
 onRecordUpdateRequest((e) => {
   const preview = require(`${__hooks}/lib/preview.js`);

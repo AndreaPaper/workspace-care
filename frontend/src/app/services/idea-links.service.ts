@@ -28,7 +28,18 @@ export class IdeaLinksService {
     return this.col.delete(id);
   }
 
+  /** Cropped thumbnail (cover of a list item). */
   imageUrl(link: IdeaLink): string {
     return this.pb.fileUrl(link, link.immagine, '400x300');
+  }
+
+  /** The whole picture, 480 px wide: for the link cards, where a screenshot must not be cropped. */
+  imageFitUrl(link: IdeaLink): string {
+    return this.pb.fileUrl(link, link.immagine, '480x0');
+  }
+
+  /** Server-side: fetches the page again and fills title, price and image (the existing image is kept if none is found). */
+  retryPreview(id: string): Promise<IdeaLink> {
+    return this.pb.client.send<IdeaLink>(`/api/link_idea/${id}/anteprima`, { method: 'POST' });
   }
 }

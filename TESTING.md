@@ -459,3 +459,14 @@ Provato sulla finestra Electron vera di una copia separata (porta 8091, cartella
 - PASS: Salva / Annulla / Elimina idea stanno 20 px sotto il campo Note, sia in modifica sia nel modulo «Nuova idea» (prima erano in fondo alla scheda, con un grande vuoto in mezzo); Annulla chiude la modifica.
 - PASS: a 375 px sei fasi cliccabili e nessun overflow.
 - Non provato: la fase scelta con Invio dalla tastiera (con la simulazione di tasti usata non scatta, ma sono pulsanti nativi); le pagine Richieste, Controlli e Acquisti hanno ancora i pulsanti del modulo in fondo alla scheda.
+
+## Aggiornamento del 20 novembre: anteprime dei link (Amazon) e immagini non ritagliate
+
+Provato sulla finestra Electron vera di una copia separata (porta 8091, cartella dati temporanea), con pagine Amazon vere.
+
+- PASS: tre link Amazon.it (prodotti diversi) ora risultano «ok», con titolo, immagine (la versione grande `hiRes`) e prezzo (6,99 €, 34,90 €, 49,90 €). Prima restavano «anteprima parziale» perché Amazon non ha `og:image`.
+- PASS: estrazione su casi di prova: og:image ha la precedenza, JSON-LD come ripiego (anche con prezzo), pagina senza immagini → nessuna immagine.
+- PASS: gli screenshot non sono più ritagliati: uno largo (1200×400) e uno alto (400×1000) si vedono interi nella scheda, con sfondo neutro (miniatura `480x0` creata dalla migrazione `1700000016`).
+- PASS: «Riprova anteprima» compare solo su anteprime parziali o fallite e rifà la ricerca senza perdere l'immagine caricata a mano.
+- Nota: se Amazon risponde con la verifica anti-robot (captcha) l'anteprima fallisce ancora e serve il fallback manuale; un link IKEA inventato in prova restava «parziale» perché la pagina non esiste.
+- Non provato: altri negozi (solo Amazon e un IKEA non valido), pagine che richiedono JavaScript per mostrare l'immagine.

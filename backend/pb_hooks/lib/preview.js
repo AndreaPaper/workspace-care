@@ -64,13 +64,83 @@ function findOffer(node) {
   return '';
 }
 
+// Image of the page: og:image first, then the usual alternatives. Shops such as Amazon have no og:image: their
+// product page carries the picture in the "landingImage" element and in a "hiRes" script entry.
+function jsonLdImage(html) {
+  const re = /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+  let m;
+  while ((m = re.exec(html))) {
+    try {
+      const found = findImage(JSON.parse(m[1]));
+      if (found) return found;
+    } catch (_) {
+      // ignore malformed JSON-LD
+    }
+  }
+  return '';
+}
+
+function findImage(node) {
+  if (!node || typeof node !== 'object') return '';
+  if (Array.isArray(node)) {
+    for (const n of node) {
+      const r = findImage(n);
+      if (r) return r;
+    }
+    return '';
+  }
+  const img = node.image;
+  if (typeof img === 'string') return img;
+  if (Array.isArray(img) && img.length) return typeof img[0] === 'string' ? img[0] : (img[0] && img[0].url) || '';
+  if (img && img.url) return img.url;
+  if (node['@graph']) return findImage(node['@graph']);
+  return '';
+}
+
+function amazonImage(html) {
+  const hi = /"hiRes"\s*:\s*"(https?:[^"]+)"/.exec(html);
+  if (hi) return hi[1].replace(/\\\//g, '/');
+  const tag = /<img[^>]+id=["'](?:landingImage|imgBlkFront|ebooksImgBlkFront)["'][^>]*>/i.exec(html);
+  if (tag) {
+    const old = /data-old-hires=["'](https?:[^"']+)["']/i.exec(tag[0]);
+    if (old) return decodeEntities(old[1]);
+    const dyn = /data-a-dynamic-image=["']\{&quot;(https?:[^&]+)&quot;/i.exec(tag[0]) || /data-a-dynamic-image=["']\{"(https?:[^"]+)"/i.exec(tag[0]);
+    if (dyn) return decodeEntities(dyn[1]);
+    const src = /\ssrc=["'](https?:[^"']+)["']/i.exec(tag[0]);
+    if (src) return decodeEntities(src[1]);
+  }
+  return '';
+}
+
+function extractImage(html, pageUrl) {
+  const link = /<link[^>]+rel=["']image_src["'][^>]*href=["']([^"']+)["']/i.exec(html);
+  const candidates = [
+    meta(html, 'og:image:secure_url'),
+    meta(html, 'og:image'),
+    meta(html, 'twitter:image'),
+    meta(html, 'twitter:image:src'),
+    link ? decodeEntities(link[1]) : '',
+    jsonLdImage(html),
+    amazonImage(html),
+  ];
+  for (const c of candidates) {
+    const abs = absoluteUrl(pageUrl, c);
+    if (abs) return abs;
+  }
+  return '';
+}
+
 function extractPrice(html) {
   const amount = meta(html, 'product:price:amount') || meta(html, 'og:price:amount');
   if (amount) {
     const cur = meta(html, 'product:price:currency') || meta(html, 'og:price:currency');
     return amount + (cur ? ' ' + cur : '');
   }
-  return priceFromJsonLd(html);
+  const fromLd = priceFromJsonLd(html);
+  if (fromLd) return fromLd;
+  // Amazon: the first displayed price ("6,99€") of the page.
+  const shown = /<span class="a-price[^"]*"[^>]*>\s*<span class="a-offscreen">([^<]+)<\/span>/i.exec(html);
+  return shown ? decodeEntities(shown[1]).trim() : '';
 }
 
 function extensionFor(contentType) {
@@ -102,18 +172,24 @@ function fillPreview(record) {
       url: url,
       method: 'GET',
       timeout: 10,
-      headers: { 'User-Agent': UA, 'Accept-Language': 'it-IT,it;q=0.9,en;q=0.8', Accept: 'text/html' },
+      headers: {
+        'User-Agent': UA,
+        'Accept-Language': 'it-IT,it;q=0.9,en;q=0.8',
+        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Upgrade-Insecure-Requests': '1',
+      },
     });
     if (res.statusCode >= 200 && res.statusCode < 300) {
       const html = String(res.raw || '').slice(0, 1500000);
       const titolo = meta(html, 'og:title') || decodeEntities((/<title[^>]*>([\s\S]*?)<\/title>/i.exec(html) || [, ''])[1]).trim();
       const sito = meta(html, 'og:site_name') || (/^https?:\/\/([^\/]+)/i.exec(url) || [, ''])[1];
       const prezzo = extractPrice(html);
-      const imageUrl = absoluteUrl(url, meta(html, 'og:image'));
+      const imageUrl = extractImage(html, url);
       if (titolo) record.set('titolo', titolo);
       if (sito) record.set('sito', sito);
       if (prezzo) record.set('prezzo', prezzo);
-      let hasImage = false;
+      // A retry keeps the picture that is already there (e.g. a screenshot added by hand).
+      let hasImage = !!record.getString('immagine');
       if (imageUrl) {
         const file = downloadImage(imageUrl);
         if (file) {
@@ -129,4 +205,4 @@ function fillPreview(record) {
   record.set('stato_anteprima', status);
 }
 
-module.exports = { fillPreview, downloadImage };
+module.exports = { fillPreview, downloadImage, extractImage, extractPrice };
