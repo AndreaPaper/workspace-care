@@ -450,3 +450,12 @@ Provato sulla finestra Electron vera di una copia separata (porta 8091, cartella
 - PASS: pagina area: etichetta «3 con roba» a parte, «1 cassetto occupato» conta solo personale e condiviso, righe «Liberi: …» e «Con roba: …» separate.
 - PASS: Ctrl K con «roba» trova i cassetti con roba e il clic apre quello giusto; a 375 px nessun overflow.
 - Non provato: lo stato «Con roba» su una cassettiera già assegnata a più persone, e la migrazione all'indietro (riporta i «con roba» a «libero»).
+
+## Aggiornamento del 20 novembre: Idee, stato dalla barra e pulsanti del modulo
+
+Provato sulla finestra Electron vera di una copia separata (porta 8091, cartella dati temporanea).
+
+- PASS: nel dettaglio di un'idea ogni fase della barra è un pulsante; «Approvata» cambia lo stato (la scheda passa a «In corso», compaiono «Converti in acquisto» e «Segna come fatta»), «Da valutare» lo riporta indietro.
+- PASS: Salva / Annulla / Elimina idea stanno 20 px sotto il campo Note, sia in modifica sia nel modulo «Nuova idea» (prima erano in fondo alla scheda, con un grande vuoto in mezzo); Annulla chiude la modifica.
+- PASS: a 375 px sei fasi cliccabili e nessun overflow.
+- Non provato: la fase scelta con Invio dalla tastiera (con la simulazione di tasti usata non scatta, ma sono pulsanti nativi); le pagine Richieste, Controlli e Acquisti hanno ancora i pulsanti del modulo in fondo alla scheda.

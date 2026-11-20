@@ -123,7 +123,7 @@ import { ConfirmService } from '../../services/confirm.service';
             <label class="md-field wide"><span>Link (uno per riga, opzionale)</span><textarea name="urls" rows="3" placeholder="https://…" [(ngModel)]="draft.urls"></textarea></label>
           </div>
           @if (error()) { <p class="md-error" role="alert">{{ error() }}</p> }
-          <div class="md-actions">
+          <div class="md-actions flush">
             <button type="button" class="btn btn-primary" [disabled]="!draft.titolo.trim() || busy()" (click)="create()">Crea idea</button>
             <button type="button" class="btn btn-ghost" (click)="select(null)">Annulla</button>
           </div>
@@ -176,7 +176,7 @@ import { ConfirmService } from '../../services/confirm.service';
               <label class="md-field wide"><span>Note</span><textarea name="note" rows="3" [(ngModel)]="draft.note"></textarea></label>
             </div>
             @if (error()) { <p class="md-error" role="alert">{{ error() }}</p> }
-            <div class="md-actions">
+            <div class="md-actions flush">
               <button type="button" class="btn btn-primary" [disabled]="!draft.titolo.trim() || busy()" (click)="saveEdit(i)">Salva</button>
               <button type="button" class="btn btn-outline" (click)="editing.set(false)">Annulla</button>
               <button type="button" class="btn btn-ghost btn-danger-text push" (click)="remove(i)">Elimina idea</button>
@@ -194,7 +194,7 @@ import { ConfirmService } from '../../services/confirm.service';
               <div class="md-field"><span>COSTO STIMATO</span><strong class="cost">{{ cost(i) }}</strong></div>
             </div>
 
-            @if (i.stato !== 'scartata') { <app-steps-bar [steps]="steps" [current]="i.stato" label="Stato" /> }
+            @if (i.stato !== 'scartata') { <app-steps-bar [steps]="steps" [current]="i.stato" label="Stato: scegli una fase per cambiarlo" [selectable]="true" (choose)="setStatus(i, $event)" /> }
 
             @if (i.descrizione) { <p class="md-text">{{ i.descrizione }}</p> }
             @if (i.note) { <div class="note"><strong>Note</strong><p class="md-text">{{ i.note }}</p></div> }
@@ -559,6 +559,12 @@ export class Ideas implements OnInit {
   // --- actions ------------------------------------------------------------------------------
   private replace(updated: Idea): void {
     this.ideas.update((list) => list.map((x) => (x.id === updated.id ? updated : x)));
+  }
+
+  /** Picks a phase on the steps bar: changes the state without opening the edit form. */
+  async setStatus(i: Idea, value: string): Promise<void> {
+    if (value === i.stato) return;
+    await this.advance(i, value as IdeaStatus);
   }
 
   async advance(i: Idea, to: IdeaStatus): Promise<void> {
