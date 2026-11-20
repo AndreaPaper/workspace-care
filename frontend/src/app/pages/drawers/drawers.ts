@@ -20,6 +20,7 @@ import { ConfirmService } from '../../services/confirm.service';
         <div class="legend">
           <span><i class="sw personal"></i>Personale · {{ count().personale }}</span>
           <span><i class="sw shared"></i>Condiviso · {{ count().condiviso }}</span>
+          <span><i class="sw stuff"></i>Con roba · {{ count().conRoba }}</span>
           <span><i class="sw free"></i>Libero · {{ count().libero }}</span>
           @if (!areaId()) { <a routerLink="/regole">Regola sulle cassettiere</a> }
         </div>
@@ -73,6 +74,11 @@ import { ConfirmService } from '../../services/confirm.service';
                 @if (dd.tipo === 'condiviso') {
                   <label>Contenuto<input name="cont" [(ngModel)]="dd.contenuto" placeholder="Es. moduli e buste" /></label>
                 }
+                @if (dd.tipo === 'con_roba') {
+                  <p class="hint">Dentro c'è roba che non è di nessuno: il cassetto non è libero, ma non è assegnato.</p>
+                  <label>Cosa c'è (facoltativo)<input name="cosa" [(ngModel)]="dd.contenuto" placeholder="Es. cavi vecchi, scatole" /></label>
+                  <label class="check"><input type="checkbox" name="tutta" [(ngModel)]="dd.tutta" /> Segna con roba anche gli altri cassetti liberi di questa cassettiera</label>
+                }
                 <div class="actions">
                   <button type="button" class="danger" (click)="removeDrawer(d)">Elimina cassetto</button>
                   <span class="grow"></span>
@@ -109,8 +115,12 @@ import { ConfirmService } from '../../services/confirm.service';
         }
       </div>
 
-      @if (areaId() && freeSummary()) {
-        <p class="freeline">Liberi: {{ freeSummary() }} · <a routerLink="/ufficio" [queryParams]="{ tab: 'cassettiere' }">Tutte le cassettiere</a></p>
+      @if (areaId() && (freeSummary() || stuffSummary())) {
+        <p class="freeline">
+          @if (freeSummary()) { <span>Liberi: {{ freeSummary() }}</span> }
+          @if (stuffSummary()) { <span>Con roba: {{ stuffSummary() }}</span> }
+          <a routerLink="/ufficio" [queryParams]="{ tab: 'cassettiere' }">Tutte le cassettiere</a>
+        </p>
       }
 
       @if (!areaId()) {
@@ -140,6 +150,7 @@ import { ConfirmService } from '../../services/confirm.service';
     .sw { width: 14px; height: 14px; border-radius: 4px; display: inline-block; box-sizing: border-box; }
     .sw.personal { background: #e6f1fc; border: 1px solid #a9c6e8; }
     .sw.shared { background: #edf5f0; border: 1px solid #a9cdb8; }
+    .sw.stuff { background: #fbebc8; border: 1px solid #e8c77a; }
     .sw.free { background: #fff; border: 1px dashed #a8a291; }
     .btn.small { height: 40px; font-size: 13px; padding: 0 16px; }
     .error { margin: 0; color: #b42318; }
@@ -160,6 +171,8 @@ import { ConfirmService } from '../../services/confirm.service';
     .drawer small { font-size: 11px; font-weight: 700; opacity: .75; white-space: nowrap; }
     .drawer.personal { border-color: #a9c6e8; background: #e6f1fc; color: #0f3b6e; }
     .drawer.shared { border-color: #a9cdb8; background: #edf5f0; color: #173d2b; }
+    .drawer.stuff { border-color: #e8c77a; background: #fbebc8; color: #5c3f00; }
+    .freeline { display: flex; flex-wrap: wrap; gap: 4px 14px; }
     .drawer.free { border: 1px dashed #a8a291; background: #fff; color: #45473f; font-weight: 500; }
     .drawer.sel { border: 2px solid #2f6fb5; }
     .drawer:focus-visible, .label:focus-visible { outline: 3px solid #2f6fb5; outline-offset: 2px; }
@@ -207,6 +220,7 @@ export class Drawers implements OnInit {
   readonly types: { value: DrawerType; label: string }[] = [
     { value: 'personale', label: 'Personale' },
     { value: 'condiviso', label: 'Condiviso' },
+    { value: 'con_roba', label: 'Con roba' },
     { value: 'libero', label: 'Libero' },
   ];
   readonly units = signal<DrawerUnit[]>([]);
@@ -230,6 +244,7 @@ export class Drawers implements OnInit {
     return {
       personale: list.filter((d) => d.tipo === 'personale').length,
       condiviso: list.filter((d) => d.tipo === 'condiviso').length,
+      conRoba: list.filter((d) => d.tipo === 'con_roba').length,
       libero: list.filter((d) => d.tipo === 'libero').length,
     };
   });
@@ -250,18 +265,22 @@ export class Drawers implements OnInit {
   });
 
   /** "cassettiera 3 (cassetti 2 e 3), cassettiera 5 (tutta)" for the units with free drawers. */
-  readonly freeSummary = computed(() => {
+  readonly freeSummary = computed(() => this.summaryOf('libero'));
+  /** The same for the drawers that hold stuff of nobody. */
+  readonly stuffSummary = computed(() => this.summaryOf('con_roba'));
+
+  private summaryOf(tipo: DrawerType): string {
     const parts: string[] = [];
     for (const g of this.groups()) {
       for (const u of g.units) {
-        const free = u.drawers.filter((d) => d.tipo === 'libero').map((d) => d.numero);
+        const free = u.drawers.filter((d) => d.tipo === tipo).map((d) => d.numero);
         if (!free.length) continue;
         const list = free.length === u.drawers.length ? 'tutta' : (free.length === 1 ? 'cassetto ' : 'cassetti ') + (free.length > 1 ? free.slice(0, -1).join(', ') + ' e ' + free[free.length - 1] : free[0]);
         parts.push(`cassettiera ${u.unit.numero} (${list})`);
       }
     }
     return parts.join(', ');
-  });
+  }
 
   readonly selectedDrawer = computed(() => {
     const s = this.sel();
@@ -298,12 +317,13 @@ export class Drawers implements OnInit {
   }
 
   kind(d: Drawer): string {
-    return d.tipo === 'libero' ? 'free' : d.tipo === 'condiviso' ? 'shared' : 'personal';
+    return d.tipo === 'libero' ? 'free' : d.tipo === 'condiviso' ? 'shared' : d.tipo === 'con_roba' ? 'stuff' : 'personal';
   }
 
   label(d: Drawer): string {
     if (d.tipo === 'personale') return d.assegnato_a || 'Personale';
     if (d.tipo === 'condiviso') return d.contenuto || 'Condiviso';
+    if (d.tipo === 'con_roba') return d.contenuto ? `Con roba: ${d.contenuto}` : 'Con roba';
     return 'Libero';
   }
 
@@ -342,13 +362,17 @@ export class Drawers implements OnInit {
     const own = {
       tipo: this.dd.tipo,
       assegnato_a: this.dd.tipo === 'personale' ? person : '',
-      contenuto: this.dd.tipo === 'condiviso' ? this.dd.contenuto.trim() : '',
+      contenuto: this.dd.tipo === 'condiviso' || this.dd.tipo === 'con_roba' ? this.dd.contenuto.trim() : '',
     };
     try {
       await this.drawersService.update(d.id, own);
       if (this.dd.tutta && this.dd.tipo === 'personale' && person) {
         const others = this.drawers().filter((x) => x.cassettiera === d.cassettiera && x.id !== d.id);
         await Promise.all(others.map((x) => this.drawersService.update(x.id, { tipo: 'personale', assegnato_a: person, contenuto: '' })));
+      } else if (this.dd.tutta && this.dd.tipo === 'con_roba') {
+        // Only the free drawers: the ones that belong to someone are left alone.
+        const free = this.drawers().filter((x) => x.cassettiera === d.cassettiera && x.id !== d.id && x.tipo === 'libero');
+        await Promise.all(free.map((x) => this.drawersService.update(x.id, { tipo: 'con_roba', assegnato_a: '', contenuto: own.contenuto })));
       }
       await this.reload();
       this.dd.tutta = false;
@@ -360,7 +384,7 @@ export class Drawers implements OnInit {
   }
 
   async removeDrawer(d: Drawer): Promise<void> {
-    const who = d.tipo === 'personale' ? `Assegnato a ${d.assegnato_a || 'una persona'}` : d.tipo === 'condiviso' ? `Contenuto: ${d.contenuto || 'materiale condiviso'}` : undefined;
+    const who = d.tipo === 'personale' ? `Assegnato a ${d.assegnato_a || 'una persona'}` : d.tipo === 'condiviso' ? `Contenuto: ${d.contenuto || 'materiale condiviso'}` : d.tipo === 'con_roba' ? `Con roba${d.contenuto ? ': ' + d.contenuto : ''}` : undefined;
     if (!(await this.confirmService.ask({ title: `Eliminare il cassetto ${d.numero}?`, text: who, confirmLabel: 'Elimina cassetto' }))) return;
     try {
       await this.drawersService.remove(d.id);

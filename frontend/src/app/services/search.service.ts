@@ -25,7 +25,7 @@ export class SearchService {
       this.c.collection('richieste').getList(1, 4, opts(f('titolo ~ {:q} || richiedente ~ {:q}'))),
       this.c.collection('acquisti').getList(1, 4, opts(f('articolo ~ {:q} || fornitore ~ {:q}'))),
       this.c.collection('inventario').getList(1, 4, opts(f('nome ~ {:q} || posizione ~ {:q} || note ~ {:q}'))),
-      this.c.collection('cassetti').getList(1, 4, { filter: f('assegnato_a ~ {:q} || contenuto ~ {:q}'), sort: 'cassettiera,numero', expand: 'cassettiera.area' }),
+      this.c.collection('cassetti').getList(1, 4, { filter: f('assegnato_a ~ {:q} || contenuto ~ {:q}' + (/roba/i.test(q) ? ' || tipo = "con_roba"' : '')), sort: 'cassettiera,numero', expand: 'cassettiera.area' }),
       this.c.collection('regole').getList(1, 4, opts(f('testo ~ {:q}'))),
     ]);
     const area = (r: { expand?: { area?: { nome?: string } } }) => r.expand?.area?.nome ?? '';
@@ -37,7 +37,7 @@ export class SearchService {
       ...drawers.items.map((r): SearchHit => {
         const unit = r.expand?.['cassettiera'] as { numero?: number; expand?: { area?: { nome?: string } } } | undefined;
         const where = [`Cassettiera ${unit?.numero ?? ''}`, `cassetto ${r['numero']}`, unit?.expand?.area?.nome].filter(Boolean).join(' · ');
-        return { type: 'Cassettiere', icon: 'table_rows', title: r['assegnato_a'] || r['contenuto'], detail: where, link: ['/ufficio'], withQuery: false, params: { tab: 'cassettiere', cassetto: r.id } };
+        return { type: 'Cassettiere', icon: 'table_rows', title: r['assegnato_a'] || r['contenuto'] || (r['tipo'] === 'con_roba' ? 'Con roba' : ''), detail: where, link: ['/ufficio'], withQuery: false, params: { tab: 'cassettiere', cassetto: r.id } };
       }),
       ...rules.items.map((r): SearchHit => ({ type: 'Regole', icon: 'menu_book', title: String(r['testo']).slice(0, 70), detail: r['tema'], link: ['/regole'], withQuery: true })),
     ];

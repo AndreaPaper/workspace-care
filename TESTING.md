@@ -438,3 +438,15 @@ Provata sulla finestra Electron vera di una copia separata (porta 8091, cartelle
 - PASS: Ripristino dalla tabella: conferma rossa nel pannello con focus su «Annulla», avviso «Dati ripristinati», copia di sicurezza creata, e dati davvero tornati a quelli del backup (un'idea aggiunta dopo è sparita).
 - PASS: Ripristino con account diverso (stessa base dati, `credentials.json` nuovo): l'account interno viene riparato, il login con le credenziali nuove funziona e quelle vecchie no, la pagina mostra i dati.
 - Non provato: «Ripristina da un'altra cartella…» (finestra di scelta di Windows), cartella non valida, errore a metà del ripristino (il ritorno ai dati vecchi è nel codice), backup automatico a finestra nascosta.
+
+## Aggiornamento del 20 novembre: cassetti «Con roba»
+
+Provato sulla finestra Electron vera di una copia separata (porta 8091, cartella dati temporanea).
+
+- PASS: la migrazione `1700000015_cassetti_con_roba.js` aggiunge il valore al campo `tipo`; il server lo accetta.
+- PASS: il riquadro di assegnazione ha quattro pulsanti (Personale / Condiviso / Con roba / Libero); con «Con roba» compaiono la nota e il campo «Cosa c'è» facoltativo.
+- PASS: «Segna con roba anche gli altri cassetti liberi» cambia solo quelli liberi della stessa cassettiera (il cassetto personale resta com'era, l'altra cassettiera non cambia).
+- PASS: legenda con «Con roba · 3» separato da «Libero · 4»; cassetti in ambra con «Con roba: cavi vecchi».
+- PASS: pagina area: etichetta «3 con roba» a parte, «1 cassetto occupato» conta solo personale e condiviso, righe «Liberi: …» e «Con roba: …» separate.
+- PASS: Ctrl K con «roba» trova i cassetti con roba e il clic apre quello giusto; a 375 px nessun overflow.
+- Non provato: lo stato «Con roba» su una cassettiera già assegnata a più persone, e la migrazione all'indietro (riporta i «con roba» a «libero»).

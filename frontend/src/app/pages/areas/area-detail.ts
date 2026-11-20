@@ -56,6 +56,7 @@ const OPEN_REQUESTS = ['ricevuta', 'in_valutazione', 'in_corso'];
 
       <div class="chips">
         <button type="button" class="chip" (click)="go('sec-cassetti')">{{ occupied() }} {{ occupied() === 1 ? 'cassetto occupato' : 'cassetti occupati' }}</button>
+        @if (stuff() > 0) { <button type="button" class="chip stuff" (click)="go('sec-cassetti')">{{ stuff() }} con roba</button> }
         <button type="button" class="chip dashed" (click)="go('sec-cassetti')">{{ free() }} {{ free() === 1 ? 'libero' : 'liberi' }}</button>
         <button type="button" class="chip" (click)="go('sec-regole')">{{ rules().length }} {{ rules().length === 1 ? 'regola' : 'regole' }}</button>
         <button type="button" class="chip" (click)="go('sec-idee')">{{ openIdeas().length }} {{ openIdeas().length === 1 ? 'idea aperta' : 'idee aperte' }}</button>
@@ -142,6 +143,7 @@ const OPEN_REQUESTS = ['ricevuta', 'in_valutazione', 'in_corso'];
     .chips { display: flex; flex-wrap: wrap; gap: 8px; }
     .chip { height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid #cfc9bb; background: #fff; color: #22241f; font: 600 13px Inter, system-ui, sans-serif; cursor: pointer; }
     .chip.dashed { border-style: dashed; }
+    .chip.stuff { background: #fbebc8; border-color: #e8c77a; color: #5c3f00; }
     .block { display: flex; flex-direction: column; gap: 10px; }
     .trio { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; align-items: start; }
     .card { background: #fff; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
@@ -199,7 +201,9 @@ export class AreaDetail {
     const ids = new Set(this.units().filter((u) => u.area === this.id()).map((u) => u.id));
     return this.drawers().filter((d) => ids.has(d.cassettiera));
   });
-  readonly occupied = computed(() => this.myDrawers().filter((d) => d.tipo !== 'libero').length);
+  /** Assigned to a person or shared on purpose: "con roba" drawers are counted apart. */
+  readonly occupied = computed(() => this.myDrawers().filter((d) => d.tipo === 'personale' || d.tipo === 'condiviso').length);
+  readonly stuff = computed(() => this.myDrawers().filter((d) => d.tipo === 'con_roba').length);
   readonly free = computed(() => this.myDrawers().filter((d) => d.tipo === 'libero').length);
 
   constructor() {

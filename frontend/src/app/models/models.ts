@@ -168,7 +168,7 @@ export const RULE_STATUSES = [
   { value: 'attiva', label: 'Attiva' },
 ];
 
-export type DrawerType = 'personale' | 'condiviso' | 'libero';
+export type DrawerType = 'personale' | 'condiviso' | 'libero' | 'con_roba';
 export type RuleTopic = 'cassettiere' | 'cucina' | 'frigorifero' | 'altro';
 export type RuleStatus = 'da_definire' | 'bozza' | 'attiva';
 
