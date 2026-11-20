@@ -1,6 +1,6 @@
 // Electron main process: runs PocketBase locally, serves the Angular build from it,
 // and keeps the app in the system tray so it is always available.
-const { app, BrowserWindow, Tray, Menu, dialog, nativeImage, ipcMain, Notification, shell } = require('electron');
+const { app, BrowserWindow, Tray, Menu, dialog, nativeImage, ipcMain, Notification, session, shell } = require('electron');
 const { spawn, spawnSync } = require('child_process');
 const crypto = require('crypto');
 const path = require('path');
@@ -658,6 +658,14 @@ if (!app.requestSingleInstanceLock()) {
       app.quit();
       return;
     }
+    // PocketBase serves the app without cache headers, so Chromium could keep showing the index.html (and the scripts it
+    // names) of the previous version after an update. The page is never cached, and the cache starts empty at every launch.
+    session.defaultSession.webRequest.onHeadersReceived({ urls: [BASE_URL + '/*'] }, (details, callback) => {
+      const headers = { ...details.responseHeaders };
+      if (details.resourceType === 'mainFrame') headers['Cache-Control'] = ['no-cache'];
+      callback({ responseHeaders: headers });
+    });
+    await session.defaultSession.clearCache();
     createTray();
     createWindow();
     setupUpdater();
